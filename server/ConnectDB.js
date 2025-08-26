@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv'
+dotenv.config()
 
-const MONGO_URI_ATLAS = process.env.MONGO_URI_ATLAS || "mongodb://127.0.0.1:27017/smart_office";
+const MONGO_URI_ATLAS = process.env.MONGO_URI_ATLAS;
 
 const connectDB = async () => {
   try {

@@ -10,6 +10,7 @@ export default function Signup() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
     watch,
   } = useForm();
@@ -19,6 +20,7 @@ export default function Signup() {
       const res = await api.post("/employee/signup", data);
       if (res.status === 201) {
         dispatch(login(res.data.auth));
+        reset()
         navigate("/");
       }
     } catch (err) {
