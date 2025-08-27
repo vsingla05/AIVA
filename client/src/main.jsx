@@ -10,6 +10,7 @@ import store from "./store/store.js";
 import Logout from "./components/auth/Logout.jsx";
 import AuthLayout from "./components/auth/authLayout.jsx";
 import Home from "./pages/auth/Home.jsx";
+import ChatBot from "./ai/ChatBot.jsx";
 
 const router = createBrowserRouter([
   {
@@ -27,6 +28,10 @@ const router = createBrowserRouter([
       {
         path: "user/signup",
         element: <Signup />,
+      },
+      {
+        path: 'chatbot',
+        element: <ChatBot/>
       },
 
       {

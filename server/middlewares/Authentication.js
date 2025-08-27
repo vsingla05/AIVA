@@ -7,6 +7,7 @@ import {HR} from "../models/hr/index.js"
 dotenv.config();
 
 async function Authentication(req, res, next) {
+  console.log("in auth from fraontedn");
   try {
     const refreshToken = req.cookies?.RefreshToken;
     const accessToken = req.cookies?.AccessToken;

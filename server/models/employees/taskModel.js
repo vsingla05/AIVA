@@ -3,21 +3,24 @@ import mongoose from "mongoose";
 const taskSchema = new mongoose.Schema(
   {
     title: {
-        type:String,
+        type: String,
+        required: true,
     },
     description: {
         type: String,
     },
     employeeId: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Employee" 
+        ref: "Employee",
+        required: true
     },
     assignedBy: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "HR" 
+        ref: "Employee",
+        required: true
     }, 
     dueDate: {
-        typd:Date,
+        type: Date,
     },
     priority: {
       type: String,
@@ -33,5 +36,5 @@ const taskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Task = new mongoose.model("Task", taskSchema);
-export default Task
+const Task = mongoose.model("Task", taskSchema);
+export default Task;
