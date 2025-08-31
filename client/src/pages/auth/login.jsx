@@ -25,12 +25,13 @@ export default function LoginPage() {
       const res = await api.post("/auth/login", data);
 
       if (res.status === 200) {
+        console.log('login successfully');
         dispatch(login(res.data.user));
         navigate("/", { replace: true }); // redirect to home
       }
     } catch (err) {
-      console.error("Error in login:", err);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      console.error("Errorrr in login:", err);
+      setError(err.response?.data?.msg || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }

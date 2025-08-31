@@ -7,10 +7,13 @@ import {HR} from "../models/hr/index.js"
 dotenv.config();
 
 async function Authentication(req, res, next) {
-  console.log("in auth from fraontedn");
+  console.log("in auth from backend");
   try {
     const refreshToken = req.cookies?.RefreshToken;
     const accessToken = req.cookies?.AccessToken;
+
+    console.log('access: ', accessToken);
+    console.log('refresh:', refreshToken);
 
     if (!accessToken && !refreshToken) {
       return res.status(401).json({ msg: "No token provided" });

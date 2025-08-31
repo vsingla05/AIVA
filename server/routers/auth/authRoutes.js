@@ -6,6 +6,7 @@ import GetUser from '../../controllers/auth/GetUser.js'
 const router = express.Router()
 
 router.post('/login', Login)
+console.log("inside authroutes");
 router.post('/logout', Authentication, Logout)
 router.get('/me', Authentication, GetUser)
 

@@ -7,13 +7,13 @@ const connectDb = async () => {
   try {
     console.log("Connecting to DB:", process.env.MONGO_URI_ATLAS);
 
-    const conn = mongoose.connect(process.env.MONGO_URI_ATLAS, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+    const conn = await mongoose.connect(process.env.MONGO_URI_ATLAS, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
 
     console.log("✅ MongoDB Successfully connected to AIVA database");
-    return conn;
+    return conn; 
   } catch (err) {
     console.error("❌ MongoDB connection error:", err.message);
     process.exit(1);
