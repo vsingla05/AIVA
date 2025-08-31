@@ -6,57 +6,43 @@ dotenv.config();
 
 const employeeSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Employee name is required"],
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      lowercase: true,
-    },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-    },
-    phone: {
-      type: String,
-    },
-    address: {
-      type: String,
-    },
-    imageUrl: {
-      type: String,
-    },
-    role: {
-      type: String,
-      default: "EMPLOYEE",
-    },
-    department: {
-      type: String,
-      default: "General",
-    },
-    designation: {
-      type: String,
-      default: "Employee",
-    },
-    joinDate: {
-      type: Date,
-      default: Date.now,
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, lowercase: true },
+    password: { type: String, required: true },
+    phone: String,
+    address: String,
+    imageUrl: String,
+    role: { type: String, default: "EMPLOYEE" },
+    joinDate: { type: Date, default: Date.now },
     leaveBalance: {
       cl: { type: Number, default: 6 },
       sl: { type: Number, default: 6 },
       el: { type: Number, default: 10 },
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+    isActive: { type: Boolean, default: true },
+
+    // Skills for AI matching
+    skills: [
+      {
+        name: String,
+        level: { type: Number, default: 1 }, // 1–5 scale
+      },
+    ],
+
+    // Current task load & availability
+    currentLoad: { type: Number, default: 0 }, 
+    availability: {
+      maxWeeklyHours: { type: Number, default: 40 },
+      holidays: [Date],
     },
-    refreshToken: {
-      type: String,
+
+    // Performance metrics for AI ranking
+    performance: {
+      taskCompletionRate: { type: Number, default: 0.7 }, 
+      avgQualityRating: { type: Number, default: 0.7 },  
     },
+
+    refreshToken: String,
   },
   { timestamps: true }
 );
@@ -88,6 +74,5 @@ employeeSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const Employee = new mongoose.model('Employee', employeeSchema)
-
-export default Employee
+const Employee = mongoose.model("Employee", employeeSchema);
+export default Employee;

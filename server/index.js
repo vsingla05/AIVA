@@ -8,7 +8,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const app = express();
-const port = 6000
+const port = 3000
 
 connectDB();
 
@@ -20,5 +20,6 @@ app.use('/api/v1/employee', employeeRoutes);
 app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/ai', aiRoutes)
 
+console.log('inside indexjs');
 
 app.listen(port, () => console.log(`Server started on http://localhost:${port}`));

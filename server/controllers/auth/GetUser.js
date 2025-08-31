@@ -24,6 +24,6 @@ export default async function GetUser(req, res) {
     return res.status(200).send({ user });
   } catch (err) {
     console.error('Error in getUser:', err);
-    return res.status(500).send({ msg: "Internal Server Error" });
+    return res.status(501).send({ msg: "Internal Server Error" });
   }
 }

@@ -7,10 +7,10 @@ import Login from "./pages/auth/login.jsx";
 import Signup from "./pages/emplyees/Signup.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
-import Logout from "./components/auth/Logout.jsx";
 import AuthLayout from "./components/auth/authLayout.jsx";
 import Home from "./pages/auth/Home.jsx";
 import ChatBot from "./ai/ChatBot.jsx";
+import Logout from './components/auth/Logout.jsx'
 
 const router = createBrowserRouter([
   {
