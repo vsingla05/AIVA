@@ -48,8 +48,6 @@ export default function ChatBot() {
 
   return (
     <>
-      <AnimatedMulti onSelectEmployees={(ids = []) => setEmployeeId(ids)} />
-      {console.log("from chatbot", employeeIds)}
       <div className="flex flex-col w-full max-w-md mx-auto border border-gray-300 rounded-lg shadow-lg p-4 h-[500px]">
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto mb-4 space-y-2">

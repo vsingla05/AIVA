@@ -1,5 +1,14 @@
 import { Employee } from "../../models/employees/index.js";
 
+// Define skill aliases
+const skillAliases = {
+  "backend": ["backend development", "node.js", "api development", "java", "spring boot"],
+  "frontend": ["frontend development", "react", "angular", "vue", "ui/ux design", "front-end testing"],
+  "data analysis": ["data analytics", "excel", "python", "machine learning"],
+  "sales": ["negotiation", "client communication", "crm"],
+  "marketing": ["advertisement", "seo", "social media", "content creation"]
+};
+
 export default async function SelectBestEmployee(task) {
   const employees = await Employee.find({ isActive: true });
 
@@ -22,46 +31,69 @@ export default async function SelectBestEmployee(task) {
   }
 
   // 3. Score each eligible employee
-  const scoredEmployees = eligibleEmployees.map(emp => {
-    // Skill match score
-    let skillScore = 0;
-    if (task.requiredSkills) {
-      for (const reqSkill of task.requiredSkills) {
-        const empSkill = emp.skills.find(
-          s => s.name.toLowerCase() === reqSkill.name.toLowerCase()
-        );
-        if (empSkill) {
-          skillScore += 1 + Math.max(0, empSkill.level - reqSkill.level);
+  const scoredEmployees = eligibleEmployees
+    .map(emp => {
+      let skillScore = 0;
+      let matchedSkills = 0;
+
+      if (task.requiredSkills?.length) {
+        for (const reqSkill of task.requiredSkills) {
+          const reqName = reqSkill.name.toLowerCase();
+
+          const empSkill = emp.skills.find(s => {
+            const empName = s.name.toLowerCase();
+
+            // Exact match
+            if (empName === reqName) return true;
+
+            // Check aliases
+            const aliases = skillAliases[reqName] || [];
+            return aliases.includes(empName);
+          });
+
+          if (empSkill) {
+            matchedSkills++;
+            skillScore += 1 + Math.max(0, empSkill.level - reqSkill.level);
+          }
         }
       }
-    }
-    // Normalize skill score
-    const maxSkillScore = task.requiredSkills ? task.requiredSkills.length * 5 : 1;
-    const normalizedSkill = skillScore / maxSkillScore;
 
-    // Workload score (more free hours -> higher score)
-    const workLoadScore = emp.availability.maxWeeklyHours - emp.currentLoad;
-    const normalizedLoad = workLoadScore / emp.availability.maxWeeklyHours;
+      // Normalize skill score
+      const maxSkillScore = task.requiredSkills
+        ? task.requiredSkills.length * 5
+        : 1;
+      const normalizedSkill = skillScore / maxSkillScore;
 
-    // Performance score
-    const normalizedPerformance =
-      (emp.performance.taskCompletionRate + emp.performance.avgQualityRating) / 2;
+      // Workload score
+      const workLoadScore = emp.availability.maxWeeklyHours - emp.currentLoad;
+      const normalizedLoad = workLoadScore / emp.availability.maxWeeklyHours;
 
-    // Weighted sum: skills 50%, performance 30%, workload 20%
-    const totalScore =
-      normalizedSkill * 0.5 + normalizedPerformance * 0.3 + normalizedLoad * 0.2;
+      // Performance score
+      const normalizedPerformance =
+        (emp.performance.taskCompletionRate + emp.performance.avgQualityRating) / 2;
 
-    return { employee: emp, score: totalScore };
-  });
+      // Weighted sum: skills 50%, performance 30%, workload 20%
+      const totalScore =
+        normalizedSkill * 0.5 +
+        normalizedPerformance * 0.3 +
+        normalizedLoad * 0.2;
+
+      return { employee: emp, score: totalScore };
+    })
+    .filter(e => e !== null);
+
+  if (scoredEmployees.length === 0) {
+    return { selected: null, suggestions: [] };
+  }
 
   // 4. Sort descending by score
-  scoredEmployees.sort((a, b) => b.score - a.score);
+  scoredEmployees.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   // 5. Select top employee and fallback suggestions
   const highestScore = scoredEmployees[0].score;
   const topEmployees = scoredEmployees.filter(e => e.score === highestScore);
 
-  const selected = topEmployees[0].employee; 
+  const selected = topEmployees[0].employee;
   const suggestions = scoredEmployees
     .slice(0, 3)
     .map(e => e.employee);
