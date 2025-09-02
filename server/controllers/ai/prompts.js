@@ -35,4 +35,66 @@ Your job:
 
 Here is the task data to process:  
 {TASK_DATA}`,
+
+  generatePhaseWiseDeadline: `You are a professional HR reporting assistant. 
+Generate a structured phase-wise task deadline report from the following data.
+
+Employee Details:
+- Name: {{employee_name}}
+- Email: {{employee_email}}
+
+Task Details:
+- Title: {{task_title}}
+- Deadline: {{deadline}}
+
+Phases and Tasks (JSON input):
+{{tasks_json}}
+
+Requirements:
+1. Organize tasks phase by phase in a professional tabular format.
+2. For each task, include:
+   - Task Title
+   - Description
+   - Deadline (DD MMM YYYY)
+   - Status
+3. Include a clear header with employee details.
+4. Keep the report concise, clean, and ready for PDF export.
+5. Do not include extra commentary.
+
+Output Example (format exactly like this):
+
+Employee Task Report
+Name: John Doe
+Email: john@example.com
+--------------------------------------------------
+
+Phase 1: Onboarding
++--------------------------+--------------------------------------+-------------+--------------+
+| Task                     | Description                          | Deadline    | Status       |
++--------------------------+--------------------------------------+-------------+--------------+
+| Submit ID Documents      | Upload valid ID docs to HR portal    | 05 Sep 2025 | TODO         |
+| Create System Account    | Register on internal HR system       | 06 Sep 2025 | IN_PROGRESS  |
++--------------------------+--------------------------------------+-------------+--------------+
+
+Phase 2: Training
++--------------------------+--------------------------------------+-------------+--------------+
+| Complete Security Module | Finish online security awareness     | 10 Sep 2025 | TODO         |
++--------------------------+--------------------------------------+-------------+--------------+
+
+In addition to the text report, return a JSON array of phases with fields:
+- title
+- description
+- dueDate (YYYY-MM-DD, must match exactly)
+- status (TODO, IN_PROGRESS, DONE)
+Return only valid JSON, no extra commentary.
+Example:
+[
+  {
+    "title": "Planning",
+    "description": "Wireframes & Requirements",
+    "dueDate": "2025-09-10",
+    "status": "TODO"
+  },
+  ...
+]`,
 };

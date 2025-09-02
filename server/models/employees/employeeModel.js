@@ -29,6 +29,15 @@ const employeeSchema = new mongoose.Schema(
       },
     ],
 
+    reports: [
+    {
+      taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
+      pdfUrl: String,
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
+
+
     // Current task load & availability
     currentLoad: { type: Number, default: 0 }, 
     availability: {

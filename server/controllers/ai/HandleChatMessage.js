@@ -1,49 +1,10 @@
-import { runPrompt } from "./geminiClient.js";
+import { runPrompt } from '../llmFunctions/createTask.js'
 import { Task } from "../../models/employees/index.js";
-import * as chrono from "chrono-node";
 import SelectBestEmployee from "./SelectBestEmployee.js";
 import sendTaskEmail from '../auth/MailLayout.js'
-
-// Clean AI output to ensure valid JSON
-function cleanJSON(aiOutput) {
-  return aiOutput
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-}
-
-// Normalize ambiguous deadlines manually
-function parseDeadline(deadlineText) {
-  if (!deadlineText) return null;
-
-  const now = new Date();
-
-  if (/end of day/i.test(deadlineText)) {
-    now.setHours(17, 0, 0, 0);
-    return now;
-  }
-
-  if (/today afternoon/i.test(deadlineText)) {
-    now.setHours(15, 0, 0, 0);
-    return now;
-  }
-
-  if (/tomorrow/i.test(deadlineText)) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (/morning/i.test(deadlineText)) tomorrow.setHours(9, 0, 0, 0);
-    else if (/afternoon/i.test(deadlineText)) tomorrow.setHours(15, 0, 0, 0);
-    else if (/evening/i.test(deadlineText)) tomorrow.setHours(19, 0, 0, 0);
-    else tomorrow.setHours(17, 0, 0, 0);
-    return tomorrow;
-  }
-
-  const parsed = chrono.parseDate(deadlineText, now, { forwardDate: true });
-  if (parsed) return parsed;
-
-  now.setHours(17, 0, 0, 0);
-  return now;
-}
+import cleanJSON from '../utils/cleanJson.js';
+import parseDate from '../utils/parseDate.js';
+import generatePhasesAndReport from '../llmFunctions/generatePhasesAndReport.js';
 
 export default async function HandleChatMessage(req, res) {
   const { command } = req.body;
@@ -64,7 +25,6 @@ export default async function HandleChatMessage(req, res) {
       });
     }
 
-    console.log("AI extracted task:", taskData);
 
     // STEP 2: Find latest incomplete task OR create new
     let task = await Task.findOne({
@@ -78,7 +38,7 @@ export default async function HandleChatMessage(req, res) {
     if (taskData.task) task.title = taskData.task;
 
     if (taskData.deadline) {
-      const parsedDate = parseDeadline(taskData.deadline);
+      const parsedDate = parseDate(taskData.deadline);
       if (!parsedDate)
         return res.status(400).json({
           reply:
@@ -140,6 +100,8 @@ Deadline: ${task.dueDate.toISOString()}, priority: ${
       reply = missingCheck;
     }
 
+    // **** function of generate pdf for employee who has been assinged task *****
+    const {pdfUrl} = await generatePhasesAndReport(task, bestEmployee)
     return res.json({ reply });
   } catch (err) {
     console.error("Error in HandleChatMessage:", err);
