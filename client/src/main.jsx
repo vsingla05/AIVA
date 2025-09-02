@@ -11,6 +11,7 @@ import AuthLayout from "./components/auth/authLayout.jsx";
 import Home from "./pages/auth/Home.jsx";
 import ChatBot from "./ai/ChatBot.jsx";
 import Logout from './components/auth/Logout.jsx'
+import Profile from "./pages/emplyees/AddProfile.jsx";
 
 const router = createBrowserRouter([
   {
@@ -43,6 +44,15 @@ const router = createBrowserRouter([
           },
         ],
       },
+      {
+        element: <AuthLayout roles={['EMPLOYEE']} />,
+        children: [
+          {
+            path: 'employee/addProfile',
+            element: <Profile/>
+          }
+        ]
+      }
     ],
   },
 ]);
