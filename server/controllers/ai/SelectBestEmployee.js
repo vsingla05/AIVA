@@ -27,7 +27,7 @@ export default async function SelectBestEmployee(task) {
   });
 
   if (eligibleEmployees.length === 0) {
-    return { selected: null, suggestions: [] };
+    return { bestEmployee: null, suggestions: [] };
   }
 
   // 3. Score each eligible employee
@@ -83,7 +83,7 @@ export default async function SelectBestEmployee(task) {
     .filter(e => e !== null);
 
   if (scoredEmployees.length === 0) {
-    return { selected: null, suggestions: [] };
+    return { bestEmployee: null, suggestions: [] };
   }
 
   // 4. Sort descending by score
@@ -93,10 +93,11 @@ export default async function SelectBestEmployee(task) {
   const highestScore = scoredEmployees[0].score;
   const topEmployees = scoredEmployees.filter(e => e.score === highestScore);
 
-  const selected = topEmployees[0].employee;
+  const bestEmployee = topEmployees[0].employee;
+  console.log("selected in bestemployee", bestEmployee);
   const suggestions = scoredEmployees
     .slice(0, 3)
     .map(e => e.employee);
 
-  return { selected, suggestions };
+  return { bestEmployee, suggestions };
 }

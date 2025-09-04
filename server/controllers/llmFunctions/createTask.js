@@ -1,7 +1,7 @@
-import { taskPrompts } from "./prompts.js";
+import { taskPrompts } from '../ai/prompts.js'
 import {model} from '../ai/geminiClient.js'
 
-export async function runPrompt(promptKey, taskData = {}) {
+export default async function runPrompt(promptKey, taskData = {}) {
   const promptTemplate = taskPrompts[promptKey];
   if (!promptTemplate) {
     console.log('promt not found');
