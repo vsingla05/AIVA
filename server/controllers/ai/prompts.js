@@ -37,7 +37,7 @@ Here is the task data to process:
 {TASK_DATA}`,
 
   generatePhaseWiseDeadline: `You are a professional HR reporting assistant. 
-Generate a structured phase-wise task deadline report from the following data.
+Generate both a **phase-wise task report (for PDF export)** and a **structured JSON schema (for database storage)**.
 
 Employee Details:
 - Name: {{employee_name}}
@@ -45,56 +45,111 @@ Employee Details:
 
 Task Details:
 - Title: {{task_title}}
-- Deadline: {{deadline}}
+- Overall Deadline: {{deadline}}
 
 Phases and Tasks (JSON input):
 {{tasks_json}}
 
 Requirements:
-1. Organize tasks phase by phase in a professional tabular format.
-2. For each task, include:
-   - Task Title
-   - Description
-   - Deadline (DD MMM YYYY)
-   - Status
-3. Include a clear header with employee details.
-4. Keep the report concise, clean, and ready for PDF export.
-5. Do not include extra commentary.
+1. Output must contain two sections: 
+   (A) Report (formatted exactly as shown) 
+   (B) JSON (strict JSON only).
+2. Report should include:
+   - Header (Employee info, Task title, Overall deadline, Report generated date)
+   - Project overview (short summary from description if available)
+   - Phase-wise breakdown (with phase details, tasks in tabular format)
+   - Summary (completed, pending, overdue, next steps)
+3. JSON schema must include:
+   - title
+   - description
+   - dueDate (YYYY-MM-DD)
+   - status (TODO, IN_PROGRESS, DONE)
+   - tasks (array of tasks with same fields)
 
-Output Example (format exactly like this):
+Output Format (important: follow exactly):
+--------------------------------------------------
+SECTION A: REPORT
+{{full_text_report_here}}
 
-Employee Task Report
-Name: John Doe
-Email: john@example.com
+SECTION B: JSON
+{{json_here}}
 --------------------------------------------------
 
+Example Output:
+
+SECTION A: REPORT
+==================================================
+           EMPLOYEE TASK REPORT
+==================================================
+Name: John Doe
+Email: john@example.com
+Task Title: Backend Development
+Overall Deadline: 20 Sep 2025
+Report Generated: 05 Sep 2025
+
+--------------------------------------------------
+PROJECT OVERVIEW
+--------------------------------------------------
+Developing backend APIs with authentication and DB integration.
+
+--------------------------------------------------
+PHASE-WISE TASKS
+--------------------------------------------------
 Phase 1: Onboarding
+Description: Initial setup
+Deadline: 06 Sep 2025
+Status: IN_PROGRESS
+
 +--------------------------+--------------------------------------+-------------+--------------+
 | Task                     | Description                          | Deadline    | Status       |
 +--------------------------+--------------------------------------+-------------+--------------+
-| Submit ID Documents      | Upload valid ID docs to HR portal    | 05 Sep 2025 | TODO         |
-| Create System Account    | Register on internal HR system       | 06 Sep 2025 | IN_PROGRESS  |
+| Setup Node Project       | Initialize Node.js + MongoDB setup   | 05 Sep 2025 | DONE         |
+| Configure Auth           | Implement JWT auth                   | 06 Sep 2025 | IN_PROGRESS  |
 +--------------------------+--------------------------------------+-------------+--------------+
 
-Phase 2: Training
-+--------------------------+--------------------------------------+-------------+--------------+
-| Complete Security Module | Finish online security awareness     | 10 Sep 2025 | TODO         |
-+--------------------------+--------------------------------------+-------------+--------------+
+--------------------------------------------------
+SUMMARY
+--------------------------------------------------
+- Total Phases: 3
+- Completed: 1
+- Pending: 2
+- Overdue Tasks: 0
+- Next Steps: Complete auth & testing.
 
-In addition to the text report, return a JSON array of phases with fields:
-- title
-- description
-- dueDate (YYYY-MM-DD, must match exactly)
-- status (TODO, IN_PROGRESS, DONE)
-Return only valid JSON, no extra commentary.
-Example:
+--------------------------------------------------
+Prepared by: AIVA Task Reporting System
+Generated on: 05 Sep 2025
+==================================================
+
+SECTION B: JSON
 [
   {
-    "title": "Planning",
-    "description": "Wireframes & Requirements",
-    "dueDate": "2025-09-10",
-    "status": "TODO"
-  },
-  ...
-]`,
+    "title": "Onboarding",
+    "description": "Initial setup",
+    "dueDate": "2025-09-06",
+    "status": "IN_PROGRESS",
+    "tasks": [
+      {
+        "title": "Setup Node Project",
+        "description": "Initialize Node.js + MongoDB setup",
+        "dueDate": "2025-09-05",
+        "status": "DONE"
+      },
+      {
+        "title": "Configure Auth",
+        "description": "Implement JWT auth",
+        "dueDate": "2025-09-06",
+        "status": "IN_PROGRESS"
+      }
+    ]
+  }
+]
+If no phases/tasks are provided, generate reasonable project phases and tasks automatically
+based on the task description. Each phase should include:
+- title
+- description
+- deadline
+- status (TODO, IN_PROGRESS, DONE)
+- tasks (array of task objects with same fields)
+`,
 };

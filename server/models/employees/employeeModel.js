@@ -20,6 +20,7 @@ const employeeSchema = new mongoose.Schema(
       el: { type: Number, default: 10 },
     },
     isActive: { type: Boolean, default: true },
+    isAssigned: { type: Boolean, default: false },
 
     // Skills for AI matching
     skills: [
