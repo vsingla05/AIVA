@@ -12,6 +12,7 @@ import Home from "./pages/auth/Home.jsx";
 import ChatBot from "./ai/ChatBot.jsx";
 import Logout from './components/auth/Logout.jsx'
 import Profile from "./pages/emplyees/AddProfile.jsx";
+import AllEmployeeTasks from "./components/employees/task/allEmployeeTasks.jsx";
 
 const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
           {
             path: 'employee/addProfile',
             element: <Profile/>
+          },
+          {
+            path: 'employee/tasks',
+            element: <AllEmployeeTasks/>
           }
         ]
       }

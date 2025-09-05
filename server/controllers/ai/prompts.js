@@ -29,7 +29,7 @@ Your job:
        - "level": skill proficiency required (1–5 scale)
        - If the task description does not explicitly mention skills, infer reasonable skills based on the task text.
    - "estimatedHours": estimated number of hours to complete the task
-       - If the task description does not mention hours, make a reasonable guess.
+       - If the task description does not mention hours, make a reasonable guess, make sure estimated hours should be less than 30.
 
 2. Always output valid JSON with exactly these keys.
 

@@ -38,13 +38,17 @@ export default async function generatePhasesAndReport(task, employee) {
 
     const taskPhase = await storePhaseData(phases);
 
-    const pdfBuffer = await generateTaskPdf(reportText); // your function returns buffer
-    console.log("PDF buffer length:", pdfBuffer.length);
+    const pdfBuffer = await generateTaskPdf(reportText);
+
+    // Always include .pdf in filename
+    const pdfFileName = `task_${task._id}_${employee._id}.pdf`;
     const pdfUrl = await uploadFileFromBuffer(
       pdfBuffer,
-      `task_${task._id}_${employee._id}`
+      pdfFileName,
+      "Reports"
     );
-    console.log('pdfUrl from generatedfandphases');
+
+    console.log("PDF successfully uploaded:", pdfUrl);
     // Save PDF URL in employee document
     await Employee.findByIdAndUpdate(employee._id, {
       $push: {
@@ -53,8 +57,8 @@ export default async function generatePhasesAndReport(task, employee) {
           pdfUrl: pdfUrl,
         },
       },
+      $inc: { currentLoad: task.estimatedHours || 0 },
     });
-
 
     return { taskPhase, phases, pdfUrl };
   } catch (err) {

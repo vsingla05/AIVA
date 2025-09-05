@@ -13,7 +13,6 @@ function App() {
     const fetchUser = async () => {
       try {
         const res = await api.get("/auth/me");
-        console.log(res.data.user);
         if (res.status === 200 && res.data.user) {
           dispatch(login(res.data.user));
         } else {
@@ -22,7 +21,7 @@ function App() {
       } catch (err) {
         dispatch(logout());
       } finally {
-        setLoading(false); // important
+        setLoading(false); 
       }
     };
     fetchUser();

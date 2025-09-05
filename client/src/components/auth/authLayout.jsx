@@ -15,7 +15,6 @@ export default function AuthLayout({ children, roles = [] }) {
       try {
         const res = await api.get("/auth/me");
         if (res.status === 200) {
-          console.log(res.data.user);
           setRole(res.data.user.role);
         }
       } catch (err) {

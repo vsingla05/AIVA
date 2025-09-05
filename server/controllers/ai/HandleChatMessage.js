@@ -72,11 +72,13 @@ export default async function HandleChatMessage(req, res) {
     try {
       ({ bestEmployee, suggestions } = await SelectBestEmployee(task));
     } catch (err) {
-      console.error("Error selecting best employee:", err);
+      console.error("Error selecting best employee:", err.message);
       return res.status(500).json({ reply: "Failed to select employee." });
     }
 
     if (!bestEmployee) {
+      console.log(bestEmployee);
+      console.log(suggestions);
       return res.status(500).json({ reply: "No suitable employee found." });
     }
 
@@ -108,6 +110,7 @@ export default async function HandleChatMessage(req, res) {
 
     // STEP 8: Send email with PDF (optional failure)
     try {
+      console.log('PDF URL:', pdfUrl);
       if (pdfUrl) await sendTaskEmail(bestEmployee, task, pdfUrl);
     } catch (err) {
       console.error("Error sending task email:", err);
@@ -132,3 +135,4 @@ PDF report: ${pdfUrl ? pdfUrl : "Not generated"}`;
       .json({ reply: "Something went wrong while processing your task." });
   }
 }
+
