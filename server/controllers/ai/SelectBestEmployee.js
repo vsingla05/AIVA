@@ -27,6 +27,7 @@ export default async function SelectBestEmployee(task) {
   });
 
   if (eligibleEmployees.length === 0) {
+    console.log('length is 0');
     return { bestEmployee: null, suggestions: [] };
   }
 
@@ -83,6 +84,7 @@ export default async function SelectBestEmployee(task) {
     .filter(e => e !== null);
 
   if (scoredEmployees.length === 0) {
+    console.log('scoredemployee is 0');
     return { bestEmployee: null, suggestions: [] };
   }
 

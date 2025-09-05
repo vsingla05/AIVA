@@ -2,8 +2,7 @@ import { Employee } from "../../models/employees/index.js";
 
 export default async function FetchEmployees(req, res) {
     try {
-        const employees = await Employee.find({}).select('name email');
-        console.log(employees);
+        const employees = await Employee.find({}).select('-password -refreshToken');
         return res.status(200).send({employees}); 
     } catch (err) {
         console.log('error in FetchEmployees', err);

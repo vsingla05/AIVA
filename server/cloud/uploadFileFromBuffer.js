@@ -14,21 +14,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET,
 });
 
-/**
- * Uploads a file buffer to Cloudinary and returns the secure URL
- * @param {Buffer} buffer - The file buffer to upload
- * @param {string} fileName - The public ID (name) of the file
- * @param {string} folder - Optional folder path in Cloudinary
- * @returns {Promise<string>} - The secure URL of the uploaded file
- */
 export default function uploadFileFromBuffer(buffer, fileName, folder = "AIVA") {
   return new Promise((resolve, reject) => {
-    console.log("Uploading file:", fileName, "to folder:", folder);
+    if (!buffer || !buffer.length) return reject(new Error("Buffer is empty"));
+
+    console.log("Uploading file:", fileName, "to folder:", folder, "Buffer size:", buffer.length);
 
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        resource_type: "auto",
-        public_id: fileName,
+        resource_type: "raw", // Force raw for PDF
+        public_id: fileName.replace(/[^a-zA-Z0-9_-]/g, "_"), // sanitize
         folder,
         overwrite: true,
       },
@@ -41,8 +36,6 @@ export default function uploadFileFromBuffer(buffer, fileName, folder = "AIVA") 
         resolve(result.secure_url);
       }
     );
-
-    if (!buffer || !buffer.length) return reject(new Error("Buffer is empty"));
 
     uploadStream.end(buffer);
   });
