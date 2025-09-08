@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Phase/milestone schema
 const phaseSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -12,15 +11,20 @@ const phaseSchema = new mongoose.Schema(
       default: "TODO",
     },
     completedAt: Date,
+    delayCategory: {
+      type: String,
+      enum: ["NONE", "MINOR", "MAJOR"],
+      default: "NONE",
+    },
+    delayPercent: { type: Number, default: 0 },
   },
   { _id: true, timestamps: true }
 );
 
-// Skill requirement schema
 const skillSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    level: { type: Number, default: 1 }, // 1–5 scale
+    level: { type: Number, default: 1 },
   },
   { _id: false }
 );
@@ -30,11 +34,12 @@ const taskSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: String,
 
-    // Assigned employee, AI can fill later
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
-
-    // HR / Manager assigning task
-    assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      required: true,
+    },
 
     dueDate: Date,
     priority: {
@@ -48,13 +53,9 @@ const taskSchema = new mongoose.Schema(
       default: "TODO",
     },
 
-    // Optional phases/milestones
     phases: [phaseSchema],
-
-    // Indicates if phases were AI-generated
     createdByAI: { type: Boolean, default: false },
 
-    // Alerts for delays/issues
     alerts: [
       {
         message: String,
@@ -63,17 +64,29 @@ const taskSchema = new mongoose.Schema(
       },
     ],
 
-    // Required skills for this task
     requiredSkills: [skillSchema],
-
-    // Estimated number of hours to complete task
     estimatedHours: { type: Number, default: 0 },
 
-    // Fallback employees if AI cannot find a perfect match
-    fallbackEmployees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Employee" }],
-
-    // Reassignment flag if employee falls behind
+    fallbackEmployees: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+    ],
     reassigned: { type: Boolean, default: false },
+
+    completedAt: Date,
+
+    proof: {
+      file: String,
+      comments: String,
+      status: {
+        type: String,
+        message: String,
+        enum: ["PENDING", "APPROVED", "REJECTED"],
+        default: "PENDING",
+      },
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+      reviewedAt: Date,
+    },
+
   },
   { timestamps: true }
 );

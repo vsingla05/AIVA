@@ -4,15 +4,16 @@ import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
 import Login from "./pages/auth/login.jsx";
-import Signup from "./pages/emplyees/Signup.jsx";
+import Signup from './pages/employees/Signup.jsx'
 import { Provider } from "react-redux";
 import store from "./store/store.js";
 import AuthLayout from "./components/auth/authLayout.jsx";
 import Home from "./pages/auth/Home.jsx";
 import ChatBot from "./ai/ChatBot.jsx";
 import Logout from './components/auth/Logout.jsx'
-import Profile from "./pages/emplyees/AddProfile.jsx";
-import AllEmployeeTasks from "./components/employees/task/allEmployeeTasks.jsx";
+import Profile from './pages/employees/AddProfile.jsx'
+import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
+import TaskDetailsPage from './pages/employees/taskDetails.jsx'
 
 const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
           {
             path: 'employee/tasks',
             element: <AllEmployeeTasks/>
+          },
+          {
+            path: 'employee/task/:id',
+            element: <TaskDetailsPage/>
           }
         ]
       }
