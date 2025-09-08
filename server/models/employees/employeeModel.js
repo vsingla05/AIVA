@@ -14,44 +14,51 @@ const employeeSchema = new mongoose.Schema(
     imageUrl: String,
     role: { type: String, default: "EMPLOYEE" },
     joinDate: { type: Date, default: Date.now },
+
     leaveBalance: {
       cl: { type: Number, default: 6 },
       sl: { type: Number, default: 6 },
       el: { type: Number, default: 10 },
     },
+
     isActive: { type: Boolean, default: true },
     isAssigned: { type: Boolean, default: false },
 
-    // Skills for AI matching
     skills: [
       {
         name: String,
-        level: { type: Number, default: 1 }, // 1–5 scale
+        level: { type: Number, default: 1 },
       },
     ],
 
     reports: [
-    {
-      taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
-      pdfUrl: String,
-      createdAt: { type: Date, default: Date.now },
-    }
-  ],
+      {
+        taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
+        pdfUrl: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
 
-
-    // Current task load & availability
-    currentLoad: { type: Number, default: 0 }, 
+    currentLoad: { type: Number, default: 0 },
     availability: {
       maxWeeklyHours: { type: Number, default: 40 },
       holidays: [Date],
     },
 
-    // Performance metrics for AI ranking
     performance: {
-      taskCompletionRate: { type: Number, default: 0.7 }, 
-      avgQualityRating: { type: Number, default: 0.7 },  
+      taskCompletionRate: { type: Number, default: 0 },
+      avgQualityRating: { type: Number, default: 0 },
+      performanceScore: { type: Number, default: 100 },
+      delayedTasks: { type: Number, default: 0 },
+      completedTasks: { type: Number, default: 0 },
+      efficiency: { type: Number, default: 0 },
+      minorDelays: { type: Number, default: 0 },
+      majorDelays: { type: Number, default: 0 },
+      onTimeCompletedTask: { type: Number, default: 0 },
     },
 
+    totalTaskAssigned: { type: Number, default: 0 },
+    
     refreshToken: String,
   },
   { timestamps: true }

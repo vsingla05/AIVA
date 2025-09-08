@@ -24,6 +24,7 @@ Your job:
    - "deadline": extract the intended deadline in natural language (like "end of day tomorrow", "next Monday afternoon"). 
   Do not worry about ISO format. We will convert it programmatically.
    - "priority": priority level (HIGH, MEDIUM, LOW)
+   -"estimatedEffort": number of hours needed in this phase task
    - "requiredSkills": list of skills needed, each with:
        - "name": skill name (e.g., "Node.js")
        - "level": skill proficiency required (1–5 scale)
@@ -32,6 +33,7 @@ Your job:
        - If the task description does not mention hours, make a reasonable guess, make sure estimated hours should be less than 30.
 
 2. Always output valid JSON with exactly these keys.
+3. Always ensures that total estimatedefforts should match estimatedHours.
 
 Here is the task data to process:  
 {TASK_DATA}`,
