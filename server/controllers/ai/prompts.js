@@ -24,7 +24,6 @@ Your job:
    - "deadline": extract the intended deadline in natural language (like "end of day tomorrow", "next Monday afternoon"). 
   Do not worry about ISO format. We will convert it programmatically.
    - "priority": priority level (HIGH, MEDIUM, LOW)
-   -"estimatedEffort": number of hours needed in this phase task
    - "requiredSkills": list of skills needed, each with:
        - "name": skill name (e.g., "Node.js")
        - "level": skill proficiency required (1–5 scale)
@@ -33,14 +32,98 @@ Your job:
        - If the task description does not mention hours, make a reasonable guess, make sure estimated hours should be less than 30.
 
 2. Always output valid JSON with exactly these keys.
-3. Always ensures that total estimatedefforts should match estimatedHours.
 
 Here is the task data to process:  
 {TASK_DATA}`,
 
   generatePhaseWiseDeadline: `You are a professional HR reporting assistant. 
-Generate both a **phase-wise task report (for PDF export)** and a **structured JSON schema (for database storage)**.
+You will be given:
+- Employee details (name, email)
+- Task details (title, overall deadline)
+- A JSON blob describing phases and tasks (may be empty or partial)
 
+Your job: generate TWO outputs in one response:
+  1) SECTION A: a human-readable REPORT suitable for direct PDF export (must NOT contain any JSON array, JSON object, code block, or machine-readable data — pure text only), and
+  2) SECTION B: a strict JSON array (machine-readable) containing the phase/task schema for database storage.
+
+Important output rules (strict):
+- The response must contain ONLY these two sections and nothing else, separated exactly as shown below:
+--------------------------------------------------
+SECTION A: REPORT
+{{report_text_here}}
+
+SECTION B: JSON
+{{json_here}}
+--------------------------------------------------
+- SECTION A (REPORT) must be pure human-readable text. **Do not include any JSON, arrays, brackets [], braces {}, or JSON-like snippets inside the report.**
+- SECTION B (JSON) must be valid JSON **only** (an array of phase objects). No surrounding explanation or text before/after the JSON block.
+- Dates in SECTION B must use ISO-style **YYYY-MM-DD** only.
+- Dates displayed inside SECTION A may be human-friendly (e.g., 05 Sep 2025) but must exactly match the ISO dates in SECTION B.
+
+Deadline & date-determination rules (deterministic — follow exactly):
+1. Parse the provided Overall Deadline into a concrete date. If it is ambiguous natural language, interpret relative to the **Report Generated Date** (the current date).
+2. Determine a **Start Date**:
+   - If tasks_json includes an explicit start date, use it.
+   - Otherwise **use the Report Generated Date** as the start date.
+3. If the parsed Overall Deadline is earlier than Start Date + 1 day, set Overall Deadline = Start Date + 7 days (graceful fallback).
+4. Compute the total available days = number of calendar days inclusive from Start Date to Overall Deadline.
+5. If phases are provided and each phase contains estimatedEffort (hours), allocate each phase’s duration proportional to its effort:
+   - phaseDays = max(1, round(totalDays * (phaseEffort / sumOfAllPhaseEfforts)))
+   - Ensure last phase’s dueDate is exactly the Overall Deadline (adjust by adding/subtracting leftover days to the last phase).
+6. If phases are provided but **no** per-phase effort is present, split the totalDays **evenly** across phases (rounding as above, last phase adjusted).
+7. If **no phases** are provided, generate 3 sensible phases automatically: Planning, Execution, Testing. Distribute days evenly (or proportionally if estimatedHours exist).
+8. For tasks inside each phase:
+   - If task dueDates are present, clamp them to be <= phase.dueDate and >= previous phase end + 1 day if applicable.
+   - If task dueDates are missing, allocate them evenly within the phase (earliest dates first), ensuring the last task of the last phase equals the Overall Deadline.
+9. All computed dates must be **chronologically ordered** (phase1.dueDate < phase2.dueDate ... <= Overall Deadline).
+
+Schema & field rules (for SECTION B JSON):
+- Output a JSON **array** where each element is a phase object:
+  {
+    "title": "...",
+    "description": "...",
+    "dueDate": "YYYY-MM-DD",
+    "status": "TODO" | "IN_PROGRESS" | "DONE",
+    "tasks": [
+      {
+        "title": "...",
+        "description": "...",
+        "dueDate": "YYYY-MM-DD",
+        "status": "TODO" | "IN_PROGRESS" | "DONE"
+      },
+      ...
+    ]
+  }
+- Use only the field names: title, description, dueDate, status, tasks.
+- If the input includes estimatedHours or estimatedEffort, keep them in logic for date distribution but do NOT add unexpected fields to the JSON. (If you must output estimatedEffort inside a phase because input already had it, include it as a numeric field; otherwise do not invent additional numeric fields.)
+- Ensure dueDate is exactly YYYY-MM-DD (zero-padded month/day).
+
+Status normalization:
+- Normalize any status to one of: TODO, IN_PROGRESS, DONE. If ambiguous, default to TODO.
+
+Human-readable REPORT format (SECTION A) — EXACT layout to follow:
+- Header (Employee info, Task title, Overall deadline, Report generated date)
+- PROJECT OVERVIEW (one short paragraph from description if available)
+- PHASE-WISE TASKS (for each phase show: Phase X: Title, Description, Deadline, Status; then a table of tasks with columns: Task | Description | Deadline | Status)
+- SUMMARY (Total Phases, Completed, Pending, Overdue tasks count, Next Steps)
+- Footer: Prepared by + Generated on
+
+Formatting constraints:
+- Use separators and headings exactly as the sample (lines like -------------------------------------------------- and ==================================================) so your PDF generator can rely on them.
+- The Report must **never** include the JSON array or any raw JSON-like text.
+
+Validation & safety:
+- If any computed task/phase dueDate would exceed the Overall Deadline, adjust it back so the final Overall Deadline is respected.
+- If rounding causes a 1-day gap or overflow, fix by assigning leftover days to the last phase.
+- Ensure total timeline is preserved: last phase dueDate === Overall Deadline.
+
+If input tasks_json is inconsistent (overlapping or with dates outside the overall range), **correct it** following the rules above and reflect corrected dates only in SECTION B (do not report corrections as JSON — keep report human readable and consistent).
+
+If no meaningful description is available, generate reasonable short descriptions and 3–6 tasks total across all phases.
+
+Always keep the two outputs strictly separated and formatted exactly as shown.
+
+Here is the input to process:
 Employee Details:
 - Name: {{employee_name}}
 - Email: {{employee_email}}
@@ -50,108 +133,6 @@ Task Details:
 - Overall Deadline: {{deadline}}
 
 Phases and Tasks (JSON input):
-{{tasks_json}}
+{{tasks_json}}`
 
-Requirements:
-1. Output must contain two sections: 
-   (A) Report (formatted exactly as shown) 
-   (B) JSON (strict JSON only).
-2. Report should include:
-   - Header (Employee info, Task title, Overall deadline, Report generated date)
-   - Project overview (short summary from description if available)
-   - Phase-wise breakdown (with phase details, tasks in tabular format)
-   - Summary (completed, pending, overdue, next steps)
-3. JSON schema must include:
-   - title
-   - description
-   - dueDate (YYYY-MM-DD)
-   - status (TODO, IN_PROGRESS, DONE)
-   - tasks (array of tasks with same fields)
-
-Output Format (important: follow exactly):
---------------------------------------------------
-SECTION A: REPORT
-{{full_text_report_here}}
-
-SECTION B: JSON
-{{json_here}}
---------------------------------------------------
-
-Example Output:
-
-SECTION A: REPORT
-==================================================
-           EMPLOYEE TASK REPORT
-==================================================
-Name: John Doe
-Email: john@example.com
-Task Title: Backend Development
-Overall Deadline: 20 Sep 2025
-Report Generated: 05 Sep 2025
-
---------------------------------------------------
-PROJECT OVERVIEW
---------------------------------------------------
-Developing backend APIs with authentication and DB integration.
-
---------------------------------------------------
-PHASE-WISE TASKS
---------------------------------------------------
-Phase 1: Onboarding
-Description: Initial setup
-Deadline: 06 Sep 2025
-Status: IN_PROGRESS
-
-+--------------------------+--------------------------------------+-------------+--------------+
-| Task                     | Description                          | Deadline    | Status       |
-+--------------------------+--------------------------------------+-------------+--------------+
-| Setup Node Project       | Initialize Node.js + MongoDB setup   | 05 Sep 2025 | DONE         |
-| Configure Auth           | Implement JWT auth                   | 06 Sep 2025 | IN_PROGRESS  |
-+--------------------------+--------------------------------------+-------------+--------------+
-
---------------------------------------------------
-SUMMARY
---------------------------------------------------
-- Total Phases: 3
-- Completed: 1
-- Pending: 2
-- Overdue Tasks: 0
-- Next Steps: Complete auth & testing.
-
---------------------------------------------------
-Prepared by: AIVA Task Reporting System
-Generated on: 05 Sep 2025
-==================================================
-
-SECTION B: JSON
-[
-  {
-    "title": "Onboarding",
-    "description": "Initial setup",
-    "dueDate": "2025-09-06",
-    "status": "IN_PROGRESS",
-    "tasks": [
-      {
-        "title": "Setup Node Project",
-        "description": "Initialize Node.js + MongoDB setup",
-        "dueDate": "2025-09-05",
-        "status": "DONE"
-      },
-      {
-        "title": "Configure Auth",
-        "description": "Implement JWT auth",
-        "dueDate": "2025-09-06",
-        "status": "IN_PROGRESS"
-      }
-    ]
-  }
-]
-If no phases/tasks are provided, generate reasonable project phases and tasks automatically
-based on the task description. Each phase should include:
-- title
-- description
-- deadline
-- status (TODO, IN_PROGRESS, DONE)
-- tasks (array of task objects with same fields)
-`,
 };

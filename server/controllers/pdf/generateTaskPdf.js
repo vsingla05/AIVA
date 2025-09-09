@@ -1,6 +1,10 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
-export default async function generateTaskPdf(reportText) {
+export default async function generateTaskPdf(fullReport) {
+  // Extract SECTION A only
+  const reportMatch = fullReport.match(/SECTION A: REPORT([\s\S]*?)SECTION B:/);
+  const reportText = reportMatch ? reportMatch[1].trim() : fullReport;
+
   // 1️⃣ Create PDF document
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);

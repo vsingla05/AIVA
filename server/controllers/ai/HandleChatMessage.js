@@ -1,4 +1,5 @@
 import { Task } from '../../models/employees/index.js';
+import { Employee } from '../../models/employees/index.js';
 import parseDate from '../utils/parseDate.js';
 import cleanJSON from '../utils/cleanJson.js';
 import SelectBestEmployee from '../ai/SelectBestEmployee.js';
@@ -12,26 +13,26 @@ export default async function HandleChatMessage(req, res) {
 
   try {
     // STEP 1: Extract task fields from AI
-    const extracted = await runPrompt("extractValues", command);
+    const extracted = await runPrompt('extractValues', command);
     const cleaned = cleanJSON(extracted);
 
     let taskData;
     try {
       taskData = JSON.parse(cleaned);
-    } catch (e) {
+    } catch {
       return res.json({
-        reply:
-          "Sorry, I couldn't extract the task details properly. Could you rephrase?",
+        reply: "Sorry, I couldn't extract the task details properly. Could you rephrase?",
       });
     }
 
     // STEP 2: Find latest incomplete task OR create new
     let task = await Task.findOne({
       assignedBy: hrId,
-      status: { $ne: "DONE" },
+      status: { $ne: 'DONE' },
     }).sort({ createdAt: -1 });
 
     if (!task) task = new Task({ assignedBy: hrId });
+    console.log(task);
 
     // STEP 3: Merge AI fields
     if (taskData.task) task.title = taskData.task;
@@ -52,18 +53,16 @@ export default async function HandleChatMessage(req, res) {
     if (taskData.estimatedHours) task.estimatedHours = taskData.estimatedHours;
 
     await task.save();
-    console.log('Partial task saved successfully');
+    console.log('partial task saved');
 
     // STEP 4: Check missing fields
     const mergedData = {
-      task: task.title || "",
-      deadline: task.dueDate ? task.dueDate.toISOString() : "",
-      priority: task.priority || "",
+      task: task.title || '',
+      deadline: task.dueDate ? task.dueDate.toISOString() : '',
+      priority: task.priority || '',
     };
-
-    const missingCheck = await runPrompt("missingField", mergedData);
-
-    if (missingCheck !== "All fields are complete.") {
+    const missingCheck = await runPrompt('missingField', mergedData);
+    if (missingCheck !== 'All fields are complete.') {
       return res.json({ reply: missingCheck });
     }
 
@@ -72,67 +71,67 @@ export default async function HandleChatMessage(req, res) {
     try {
       ({ bestEmployee, suggestions } = await SelectBestEmployee(task));
     } catch (err) {
-      console.error("Error selecting best employee:", err.message);
-      return res.status(500).json({ reply: "Failed to select employee." });
+      console.error('Error selecting best employee:', err.message);
+      return res.status(500).json({ reply: 'Failed to select employee.' });
     }
 
     if (!bestEmployee) {
-      console.log(bestEmployee);
-      console.log(suggestions);
-      return res.status(500).json({ reply: "No suitable employee found." });
+      return res.status(500).json({ reply: 'No suitable employee found.' });
     }
 
     task.employeeId = bestEmployee._id;
-    task.fallbackEmployees = suggestions
-      .filter((e) => e._id.toString() !== bestEmployee._id.toString())
-      .map((e) => e._id);
 
+    // STEP 6: Save fallback employees (excluding bestEmployee)
+    if (suggestions.length > 0) {
+      task.fallbackEmployees = suggestions
+        .filter((e) => e._id.toString() !== bestEmployee._id.toString())
+        .map((e) => e._id);
+    }
+    console.log(bestEmployee);
     await task.save();
-    console.log("Task fully saved with employee assignment");
 
-    // STEP 6: Generate phases + PDF report
-    let pdfUrl = "";
+    // STEP 7: Generate phases + PDF report
+    let pdfUrl = '';
     try {
       const result = await generatePhasesAndReport(task, bestEmployee);
-      pdfUrl = result.pdfUrl || "";
+      pdfUrl = result.pdfUrl || '';
     } catch (err) {
-      console.error("Error generating PDF report:", err);
-      pdfUrl = ""; // fail gracefully
+      console.error('Error generating PDF report:', err);
+      pdfUrl = ''; // fail gracefully
     }
-
-    // STEP 7: Update employee assigned status
+    
+    console.log(pdfUrl);
+    // STEP 8: Update employee assignment status
     try {
       bestEmployee.isAssigned = true;
       await bestEmployee.save();
     } catch (err) {
-      console.error("Error updating employee assignment:", err);
+      console.error('Error updating employee assignment:', err);
     }
 
-    // STEP 8: Send email with PDF (optional failure)
+    // STEP 9: Send email with PDF
     try {
-      console.log('PDF URL:', pdfUrl);
       if (pdfUrl) await sendTaskEmail(bestEmployee, task, pdfUrl);
     } catch (err) {
-      console.error("Error sending task email:", err);
+      console.error('Error sending task email:', err);
     }
 
-    // STEP 9: Construct reply
+    // STEP 10: Construct reply
     const fallbackNames = suggestions
       .filter((e) => e._id.toString() !== bestEmployee._id.toString())
       .map((e) => e.name);
 
     const reply = `✅ Task saved successfully: "${task.title}" assigned to ${bestEmployee.name}.
-Fallback employees: ${fallbackNames.length > 0 ? fallbackNames.join(", ") : "None"}.
-Deadline: ${task.dueDate ? task.dueDate.toISOString() : "N/A"}, 
-priority: ${task.priority || "N/A"}, estimated hours: ${task.estimatedHours || "N/A"}.
-PDF report: ${pdfUrl ? pdfUrl : "Not generated"}`;
+Fallback employees: ${fallbackNames.length > 0 ? fallbackNames.join(', ') : 'None'}.
+Deadline: ${task.dueDate ? task.dueDate.toISOString().split('T')[0] : 'N/A'}, 
+Priority: ${task.priority || 'N/A'}, Estimated Hours: ${task.estimatedHours || 'N/A'}.
+PDF report: ${pdfUrl ? pdfUrl : 'Not generated'}`;
 
     return res.json({ reply });
   } catch (err) {
-    console.error("Error in HandleChatMessage:", err);
+    console.error('Error in HandleChatMessage:', err);
     return res
       .status(500)
-      .json({ reply: "Something went wrong while processing your task." });
+      .json({ reply: 'Something went wrong while processing your task.' });
   }
 }
-

@@ -79,10 +79,10 @@ const taskSchema = new mongoose.Schema(
       comments: String,
       status: {
         type: String,
-        message: String,
         enum: ["PENDING", "APPROVED", "REJECTED"],
         default: "PENDING",
       },
+      message: String,
       reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
       reviewedAt: Date,
     },
