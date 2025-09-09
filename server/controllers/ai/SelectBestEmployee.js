@@ -1,6 +1,7 @@
 import { Employee } from "../../models/employees/index.js";
+import stringSimilarity from "string-similarity"; // npm install string-similarity
 
-// Define skill aliases
+// Skill aliases map
 const skillAliases = {
   "backend": ["backend development", "node.js", "api development", "java", "spring boot"],
   "frontend": ["frontend development", "react", "angular", "vue", "ui/ux design", "front-end testing"],
@@ -12,14 +13,15 @@ const skillAliases = {
 export default async function SelectBestEmployee(task) {
   const employees = await Employee.find({ isActive: true });
 
+  // 1. Filter eligible employees
   const eligibleEmployees = employees.filter(emp => {
-    // 1. Filter out employees on holiday
+    // Holiday check
     const onHoliday = emp.availability.holidays.some(
       d => d.toDateString() === task.dueDate.toDateString()
     );
     if (onHoliday) return false;
 
-    // 2. Filter out employees over max weekly hours
+    // Workload check
     const remainingHours = emp.availability.maxWeeklyHours - emp.currentLoad;
     if (remainingHours < (task.estimatedHours || 0)) return false;
 
@@ -27,79 +29,89 @@ export default async function SelectBestEmployee(task) {
   });
 
   if (eligibleEmployees.length === 0) {
-    console.log('length is 0');
     return { bestEmployee: null, suggestions: [] };
   }
 
-  // 3. Score each eligible employee
-  const scoredEmployees = eligibleEmployees
-    .map(emp => {
-      let skillScore = 0;
-      let matchedSkills = 0;
+  // 2. Score employees
+  const scoredEmployees = eligibleEmployees.map(emp => {
+    let skillScore = 0;
 
-      if (task.requiredSkills?.length) {
-        for (const reqSkill of task.requiredSkills) {
-          const reqName = reqSkill.name.toLowerCase();
+    if (task.requiredSkills?.length) {
+      for (const reqSkill of task.requiredSkills) {
+        const reqName = reqSkill.name.toLowerCase();
 
-          const empSkill = emp.skills.find(s => {
-            const empName = s.name.toLowerCase();
+        let bestMatch = null;
+        let bestScore = 0;
 
-            // Exact match
-            if (empName === reqName) return true;
+        for (const s of emp.skills) {
+          const empName = s.name.toLowerCase();
 
-            // Check aliases
-            const aliases = skillAliases[reqName] || [];
-            return aliases.includes(empName);
-          });
+          // Exact match
+          if (empName === reqName) {
+            bestMatch = s;
+            bestScore = 1;
+            break;
+          }
 
-          if (empSkill) {
-            matchedSkills++;
-            skillScore += 1 + Math.max(0, empSkill.level - reqSkill.level);
+          // Alias match
+          const aliases = skillAliases[reqName] || [];
+          if (aliases.includes(empName)) {
+            bestMatch = s;
+            bestScore = 0.9;
+            break;
+          }
+
+          // Fuzzy match
+          const similarity = stringSimilarity.compareTwoStrings(reqName, empName);
+          if (similarity > bestScore) {
+            bestMatch = s;
+            bestScore = similarity;
           }
         }
+
+        // Score contribution
+        if (bestMatch && bestScore > 0.6) { // threshold for "good enough"
+          skillScore += (bestScore * 5) + Math.max(0, bestMatch.level - reqSkill.level);
+        }
       }
+    }
 
-      // Normalize skill score
-      const maxSkillScore = task.requiredSkills
-        ? task.requiredSkills.length * 5
-        : 1;
-      const normalizedSkill = skillScore / maxSkillScore;
+    // Normalize skill score
+    const maxSkillScore = task.requiredSkills
+      ? task.requiredSkills.length * 5
+      : 1;
+    const normalizedSkill = skillScore / maxSkillScore;
 
-      // Workload score
-      const workLoadScore = emp.availability.maxWeeklyHours - emp.currentLoad;
-      const normalizedLoad = workLoadScore / emp.availability.maxWeeklyHours;
+    // Workload score
+    const workLoadScore = emp.availability.maxWeeklyHours - emp.currentLoad;
+    const normalizedLoad = workLoadScore / emp.availability.maxWeeklyHours;
 
-      // Performance score
-      const normalizedPerformance =
-        (emp.performance.taskCompletionRate + emp.performance.avgQualityRating) / 2;
+    // Performance score
+    const normalizedPerformance =
+      (emp.performance.taskCompletionRate + emp.performance.avgQualityRating) / 2;
 
-      // Weighted sum: skills 50%, performance 30%, workload 20%
-      const totalScore =
-        normalizedSkill * 0.5 +
-        normalizedPerformance * 0.3 +
-        normalizedLoad * 0.2;
+    // Weighted sum
+    const totalScore =
+      normalizedSkill * 0.5 +
+      normalizedPerformance * 0.3 +
+      normalizedLoad * 0.2;
 
-      return { employee: emp, score: totalScore };
-    })
-    .filter(e => e !== null);
+    return { employee: emp, score: totalScore };
+  });
 
   if (scoredEmployees.length === 0) {
-    console.log('scoredemployee is 0');
     return { bestEmployee: null, suggestions: [] };
   }
 
-  // 4. Sort descending by score
+  // 3. Sort by score
   scoredEmployees.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-  // 5. Select top employee and fallback suggestions
+  // 4. Pick top
   const highestScore = scoredEmployees[0].score;
   const topEmployees = scoredEmployees.filter(e => e.score === highestScore);
 
   const bestEmployee = topEmployees[0].employee;
-  console.log("selected in bestemployee", bestEmployee);
-  const suggestions = scoredEmployees
-    .slice(0, 3)
-    .map(e => e.employee);
+  const suggestions = scoredEmployees.slice(0, 3).map(e => e.employee);
 
   return { bestEmployee, suggestions };
 }

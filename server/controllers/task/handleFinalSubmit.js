@@ -2,24 +2,25 @@ import { Task } from "../../models/employees/index.js";
 
 export default async function HandleFinalSubmit(req, res) {
   try {
-    const { tid } = req.params;
-    const file = req.file?.path;
+    const { id } = req.params; // use `id` to match your route
+    const file = req.file; // multer already uploaded it to Cloudinary
 
     if (!file) {
       return res.status(400).json({ msg: "Proof file is required" });
     }
 
-    let task = await Task.findByIdAndUpdate(
-      tid,
+    // Save Cloudinary info in your task
+    const task = await Task.findByIdAndUpdate(
+      id,
       {
         proof: {
-          file: file,
+          file: file.path, // Cloudinary URL is in file.path
           submittedAt: new Date(),
-          status: "PENDING", 
+          status: "PENDING",
         },
         status: "READY_FOR_REVIEW",
       },
-      { new: true } 
+      { new: true }
     );
 
     if (!task) {

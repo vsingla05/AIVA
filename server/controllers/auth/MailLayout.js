@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 async function sendTaskEmail(employee, task, pdfUrl) {
@@ -15,22 +16,37 @@ async function sendTaskEmail(employee, task, pdfUrl) {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: employee.email,
-      subject: `New Task Assigned: ${task.title}`,
+      subject: `📌 New Task Assigned: ${task.title}`,
       html: `
-        <h3>Hello ${employee.name},</h3>
-        <p>You have been assigned a new task:</p>
-        <ul>
-          <li><strong>Task:</strong> ${task.title}</li>
-          <li><strong>Deadline:</strong> ${task.deadline?.toISOString() || "N/A"}</li>
-          <li><strong>Priority:</strong> ${task.priority || "N/A"}</li>
-          <li><strong>Estimated Hours:</strong> ${task.estimatedHours || "N/A"}</li>
-        </ul>
-        <p>📄 View the PDF report: <a href="${pdfUrl}" target="_blank">Click Here</a></p>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2 style="color: #2F4F4F;">Hello ${employee.name},</h2>
+          <p>You have been assigned a new task. Here are the details:</p>
+          <table style="border-collapse: collapse; width: 100%;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Task:</td>
+              <td style="padding: 8px;">${task.title}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Deadline:</td>
+              <td style="padding: 8px;">${task.dueDate ? task.dueDate.toISOString().split("T")[0] : "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Priority:</td>
+              <td style="padding: 8px;">${task.priority || "N/A"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Estimated Hours:</td>
+              <td style="padding: 8px;">${task.estimatedHours || "N/A"}</td>
+            </tr>
+          </table>
+          ${pdfUrl ? `<p>📄 View the PDF report: <a href="${pdfUrl}" target="_blank">Click Here</a></p>` : ""}
+          <p>Best regards,<br>AIVA Task Management System</p>
+        </div>
       `,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
+    console.log("Email sent successfully:", info.response);
   } catch (err) {
     console.error("Failed to send email:", err);
   }

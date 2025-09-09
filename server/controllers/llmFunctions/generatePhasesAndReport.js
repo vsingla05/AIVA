@@ -3,7 +3,7 @@ import { taskPrompts } from "../ai/prompts.js";
 import storePhaseData from "../ai/storePhaseData.js";
 import { Employee } from "../../models/employees/index.js";
 import generateTaskPdf from "../pdf/generateTaskPdf.js";
-import uploadFileFromBuffer from "../../cloud/uploadFileFromBuffer.js";
+import {uploadFileFromBuffer} from "../../cloud/cloudinary.js";
 
 export default async function generatePhasesAndReport(task, employee) {
   try {
@@ -29,18 +29,24 @@ export default async function generatePhasesAndReport(task, employee) {
 
     // Generate the AI content
     const result = await model.generateContent(promptWithData);
-    const reportText = result.response.text();
-    console.log("report text", reportText);
+    const aiText = result.response.text();
 
-    // Extract phases from AI response
-    const match = reportText.match(/\[.*\]/s);
-    const phases = match ? JSON.parse(match[0]) : [];
+    // Extract SECTION B: JSON
+    const jsonMatch = aiText.match(/SECTION B: JSON\s*([\s\S]*)/);
+    const phases = jsonMatch ? JSON.parse(jsonMatch[1].trim()) : [];
 
+    // Extract SECTION A: REPORT (for PDF)
+    const reportMatch = aiText.match(/SECTION A: REPORT([\s\S]*?)SECTION B:/);
+    const reportOnly = reportMatch ? reportMatch[1].trim() : aiText;
+
+    console.log('report', reportOnly);
+
+    // Save phases
     const taskPhase = await storePhaseData(phases);
 
-    const pdfBuffer = await generateTaskPdf(reportText);
-
-    // Always include .pdf in filename
+    // Generate PDF from report only
+    const pdfUint8Array = await generateTaskPdf(reportOnly);
+    const pdfBuffer = Buffer.from(pdfUint8Array); 
     const pdfFileName = `task_${task._id}_${employee._id}.pdf`;
     const pdfUrl = await uploadFileFromBuffer(
       pdfBuffer,
@@ -49,12 +55,13 @@ export default async function generatePhasesAndReport(task, employee) {
     );
 
     console.log("PDF successfully uploaded:", pdfUrl);
-    // Save PDF URL in employee document
+
+    // Update Employee record
     await Employee.findByIdAndUpdate(employee._id, {
       $push: {
         reports: {
           taskId: task._id,
-          pdfUrl: pdfUrl,
+          pdfUrl,
         },
       },
       $inc: { currentLoad: task.estimatedHours || 0 },
