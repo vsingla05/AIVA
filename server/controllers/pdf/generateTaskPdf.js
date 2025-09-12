@@ -1,9 +1,8 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
 export default async function generateTaskPdf(fullReport) {
-  // Extract SECTION A only
-  const reportMatch = fullReport.match(/SECTION A: REPORT([\s\S]*?)SECTION B:/);
-  const reportText = reportMatch ? reportMatch[1].trim() : fullReport;
+  // ⚡ Remove SECTION A regex since your prompt doesn’t have that
+  const reportText = fullReport.trim();
 
   // 1️⃣ Create PDF document
   const pdfDoc = await PDFDocument.create();
@@ -19,7 +18,7 @@ export default async function generateTaskPdf(fullReport) {
   const maxWidth = width - 100;
   const lineHeight = 15;
 
-  // 3️⃣ Function to draw text with wrapping and new pages
+  // 3️⃣ Draw text with wrapping
   function drawWrappedText(text, x, y) {
     const words = text.split(" ");
     let line = "";
@@ -29,16 +28,13 @@ export default async function generateTaskPdf(fullReport) {
       const textWidth = font.widthOfTextAtSize(testLine, fontSize);
 
       if (textWidth > maxWidth) {
-        // Draw the line on current page
         page.drawText(line, { x, y, size: fontSize, font });
 
-        // Start new line
         line = word + " ";
         y -= lineHeight;
 
-        // Check if we need a new page
         if (y < 50) {
-          page = pdfDoc.addPage(); // Add new page
+          page = pdfDoc.addPage();
           ({ width, height } = page.getSize());
           y = height - 50;
         }
@@ -47,7 +43,6 @@ export default async function generateTaskPdf(fullReport) {
       }
     }
 
-    // Draw any remaining text
     if (line) {
       page.drawText(line, { x, y, size: fontSize, font });
       y -= lineHeight;
@@ -56,13 +51,12 @@ export default async function generateTaskPdf(fullReport) {
     return y;
   }
 
-  // 4️⃣ Split report into lines and draw them
+  // 4️⃣ Split into lines and draw
   const lines = reportText.split("\n");
   for (const line of lines) {
     y = drawWrappedText(line, leftMargin, y);
   }
 
-  // 5️⃣ Save PDF as Uint8Array (ready for upload)
-  const pdfBytes = await pdfDoc.save();
-  return pdfBytes; // Do NOT wrap in Buffer here
+  // 5️⃣ Save PDF as Uint8Array
+  return await pdfDoc.save();
 }

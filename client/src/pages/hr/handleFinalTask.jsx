@@ -12,7 +12,7 @@ export default function HandleFinalTask() {
       try {
         const res = await api.get("/task/fetchProofs");
         if (res.status === 200) {
-          setTasks(res.data.tasks); 
+          setTasks(res.data.tasks);     
         }
       } catch (err) {
         console.log("error in handlefinaltask", err.message);
@@ -30,7 +30,7 @@ export default function HandleFinalTask() {
         message: reason,  // include reason if rejected
       });
       if (res.status === 200) {
-        // Update local state after decision
+        alert(res.data.message)
         setTasks((prev) =>
           prev.map((t) =>
             t._id === taskId

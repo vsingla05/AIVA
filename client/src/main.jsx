@@ -14,6 +14,7 @@ import Logout from './components/auth/Logout.jsx'
 import Profile from './pages/employees/AddProfile.jsx'
 import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
 import TaskDetailsPage from './pages/employees/taskDetails.jsx'
+import HandleFinalTask from "./pages/hr/handleFinalTask.jsx";
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
           {
             path: 'employee/task/:id',
             element: <TaskDetailsPage/>
+          },
+          {
+            path: 'hr/tasks-assign',
+            element: <HandleFinalTask/>
           }
         ]
       }

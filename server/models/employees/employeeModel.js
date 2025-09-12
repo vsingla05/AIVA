@@ -21,6 +21,8 @@ const employeeSchema = new mongoose.Schema(
       el: { type: Number, default: 10 },
     },
 
+    assignedBy: {type: mongoose.Schema.Types.ObjectId, ref:'Employee'},
+
     isActive: { type: Boolean, default: true },
     isAssigned: { type: Boolean, default: false },
 
@@ -57,8 +59,23 @@ const employeeSchema = new mongoose.Schema(
       onTimeCompletedTask: { type: Number, default: 0 },
     },
 
+    notification: [
+      {
+        taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
+        phaseId: { type: mongoose.Schema.Types.ObjectId },
+        phaseTitle: String,
+        message: String,
+        delayCategory: { type: String, enum: ["NONE", "MINOR", "MAJOR"] },
+        delayPercent: Number,
+        escalation: { type: Boolean, default: false },
+        actionItem: String,
+        createdAt: { type: Date, default: Date.now },
+        seen: { type: Boolean, default: false },
+      },
+    ],
+
     totalTaskAssigned: { type: Number, default: 0 },
-    
+
     refreshToken: String,
   },
   { timestamps: true }
