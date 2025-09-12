@@ -27,6 +27,7 @@ export default async function HandleFinalSubmit(req, res) {
       return res.status(404).json({ msg: "Task not found" });
     }
 
+    console.log('upload proof successfully');
     return res.status(200).json({ task });
   } catch (err) {
     console.error("Error in HandleFinalSubmit:", err.message);

@@ -1,7 +1,7 @@
 import { Task } from "../../models/employees/index.js";
-import CheckTaskStatus from "../task/checkTaskStatus.js";
+import HandleEmployeePerformance from "../task/handleEmployeePerformance.js";
 
-export default async function HandleSubmitProof(req, res) {
+export default async function ReviewTask(req, res) {
   const { id } = req.params;          
   const reviewerId = req.user._id;    
   const { status, message } = req.body;        
@@ -23,7 +23,8 @@ export default async function HandleSubmitProof(req, res) {
     if (!task) return res.status(404).json({ msg: "Task not found" });
 
     if (status === "APPROVED") {
-      await CheckTaskStatus(task._id, task.employeeId);
+      console.log('task approved by hr');
+      await HandleEmployeePerformance(task._id, task.employeeId);
     }
 
     return res.status(200).json({ 
@@ -31,7 +32,7 @@ export default async function HandleSubmitProof(req, res) {
       task 
     });
   } catch (err) {
-    console.error("Error in HandleSubmitProof:", err.message);
+    console.error("Error in reviewTask:", err.message);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }

@@ -1,4 +1,3 @@
-// cloud/cloudinary.js
 import cloudinary from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
@@ -16,7 +15,7 @@ if (
   throw new Error("❌ Missing Cloudinary environment variables.");
 }
 
-// ✅ Configure cloudinary
+// ✅ Configure Cloudinary
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_KEY,
@@ -26,33 +25,48 @@ cloudinary.v2.config({
 // ✅ Multer storage for form-data uploads
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary.v2,
-  params: {
-    folder: "AIVA",
-    resource_type: "auto",
+  params: (req, file) => {
+    const isPDF = file.mimetype === "application/pdf";
+    const baseName = file.originalname.replace(/\.[^/.]+$/, "");
+    const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    return {
+      folder: "AIVA",
+      resource_type: isPDF ? "raw" : "auto",
+      public_id: isPDF
+        ? `${safeName}_${Date.now()}.pdf` // ✅ ensure PDF extension
+        : `${safeName}_${Date.now()}`,
+      overwrite: false,
+    };
   },
 });
 
 const upload = multer({ storage });
 
-// ✅ Function for buffer uploads
-export default function uploadFileFromBuffer(buffer, fileName, folder = "AIVA") {
+// ✅ Function for buffer uploads (PDF or other files)
+export function uploadFileFromBuffer(buffer, fileName, folder = "AIVA") {
   return new Promise((resolve, reject) => {
-    if (!buffer || !buffer.length) {
+    if (!buffer || !buffer.length)
       return reject(new Error("❌ Buffer is empty"));
-    }
 
-    // 🔑 Remove extension from fileName (avoid .pdf.pdf issue)
-    const baseName = fileName.replace(/\.[^/.]+$/, ""); 
-    const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_"); 
+    const baseName = fileName.replace(/\.[^/.]+$/, "");
+    const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const isPDF = fileName.toLowerCase().endsWith(".pdf");
 
-    console.log(`📤 Uploading ${fileName} → folder: ${folder}, public_id: ${safeName}`);
+    console.log(
+      `📤 Uploading ${fileName} → folder: ${folder}, public_id: ${safeName}`
+    );
+
+    const publicId = isPDF
+      ? `${safeName}_${Date.now()}.pdf`
+      : `${safeName}_${Date.now()}`;
 
     const uploadStream = cloudinary.v2.uploader.upload_stream(
       {
-        resource_type: "auto", // auto-detects pdf/image/video
-        folder,                // default "AIVA"
-        public_id: safeName,   // cleaned, extension-free name
-        overwrite: true,
+        folder,
+        resource_type: isPDF ? "raw" : "auto",
+        public_id: publicId,
+        overwrite: false,
       },
       (error, result) => {
         if (error) {
@@ -64,8 +78,8 @@ export default function uploadFileFromBuffer(buffer, fileName, folder = "AIVA") 
       }
     );
 
-    // pipe buffer into Cloudinary
     streamifier.createReadStream(buffer).pipe(uploadStream);
   });
 }
-export { cloudinary, upload, uploadFileFromBuffer };
+
+export { cloudinary, upload };

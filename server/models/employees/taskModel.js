@@ -7,7 +7,7 @@ const phaseSchema = new mongoose.Schema(
     dueDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["TODO", "IN_PROGRESS", "DONE"],
+      enum: ["PENDING", "IN_PROGRESS", "DONE", "READY_FOR_REVIEW", "TODO"],
       default: "TODO",
     },
     completedAt: Date,
@@ -17,9 +17,14 @@ const phaseSchema = new mongoose.Schema(
       default: "NONE",
     },
     delayPercent: { type: Number, default: 0 },
+    notificationsSent: {
+      overdueAlert: { type: Boolean, default: false }, // AI sent notification for overdue
+      completionDelayAlert: { type: Boolean, default: false } // AI sent notification after late completion
+    }
   },
   { _id: true, timestamps: true }
 );
+
 
 const skillSchema = new mongoose.Schema(
   {
@@ -49,7 +54,7 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["TODO", "IN_PROGRESS", "ON_HOLD", "DONE"],
+      enum: ["TODO", "IN_PROGRESS", "ON_HOLD", "DONE", "READY_FOR_REVIEW"],
       default: "TODO",
     },
 
@@ -60,7 +65,7 @@ const taskSchema = new mongoose.Schema(
       {
         message: String,
         createdAt: { type: Date, default: Date.now },
-        seen: { type: Boolean, default: false },
+        level: { type: String, default: "INFO"},
       },
     ],
 
@@ -79,7 +84,7 @@ const taskSchema = new mongoose.Schema(
       comments: String,
       status: {
         type: String,
-        enum: ["PENDING", "APPROVED", "REJECTED"],
+        enum: ["PENDING", "APPROVED", "REJECTED", "READY_FOR_REVIEW"],
         default: "PENDING",
       },
       message: String,
@@ -90,6 +95,21 @@ const taskSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+phaseSchema.pre("save", function (next) {
+  if (this.status === "DONE" && this.completedAt && this.dueDate) {
+    const delayMs = this.completedAt - this.dueDate;
+    const delayPercent = delayMs > 0 ? (delayMs / (this.dueDate - this.createdAt)) * 100 : 0;
+
+    this.delayPercent = Math.max(0, delayPercent);
+
+    if (this.delayPercent === 0) this.delayCategory = "NONE";
+    else if (this.delayPercent <= 20) this.delayCategory = "MINOR";
+    else this.delayCategory = "MAJOR";
+  }
+  next();
+});
+
 
 const Task = mongoose.model("Task", taskSchema);
 export default Task;
