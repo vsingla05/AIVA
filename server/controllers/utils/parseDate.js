@@ -1,20 +1,23 @@
-import * as chrono from "chrono-node";
+import chrono from "chrono-node";
+import { parse, isValid } from "date-fns";
 
-export default function parseDate(dateText) {
+export default function parseFlexibleDate(dateText) {
   if (!dateText) return null;
-
   const now = new Date();
 
-  // 🔹 Special hard-coded cases
-  if (/end of day/i.test(dateText)) {
-    now.setHours(17, 0, 0, 0);
-    return now;
+  // 1️⃣ Numeric formats: 21/12/2025 or 12-31-2025
+  const numMatch = dateText.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (numMatch) {
+    const [_, part1, part2, part3] = numMatch;
+    const isDMY = parseInt(part1) > 12;
+    const fmt = isDMY ? "dd/MM/yyyy" : "MM/dd/yyyy";
+    const parsed = parse(`${part1}/${part2}/${part3}`, fmt, now);
+    if (isValid(parsed)) return parsed;
   }
 
-  if (/today afternoon/i.test(dateText)) {
-    now.setHours(15, 0, 0, 0);
-    return now;
-  }
+  // 2️⃣ Custom HR phrases
+  if (/end of day/i.test(dateText)) return new Date(now.setHours(17, 0, 0, 0));
+  if (/today afternoon/i.test(dateText)) return new Date(now.setHours(15, 0, 0, 0));
 
   if (/tomorrow/i.test(dateText)) {
     const tomorrow = new Date();
@@ -26,38 +29,27 @@ export default function parseDate(dateText) {
     return tomorrow;
   }
 
-  // 🔹 Handle relative durations like "in 10 minutes", "10 mins from now", "after 2 hrs"
-  const relativeMatch = dateText.match(
+  // 3️⃣ Relative durations (in 2 hours, after 3 days, etc.)
+  const relMatch = dateText.match(
     /(?:in|after)?\s*(\d+)\s*(minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|week|weeks|month|months|year|years)\s*(?:from now|later)?/i
   );
-
-  if (relativeMatch) {
-    const amount = parseInt(relativeMatch[1], 10);
-    const unit = relativeMatch[2].toLowerCase();
-
-    const futureDate = new Date(now);
-    if (unit.startsWith("m") && (unit === "m" || unit.startsWith("min"))) {
-      futureDate.setMinutes(now.getMinutes() + amount);
-    } else if (unit.startsWith("h") || unit.startsWith("hr")) {
-      futureDate.setHours(now.getHours() + amount);
-    } else if (unit.startsWith("day")) {
-      futureDate.setDate(now.getDate() + amount);
-    } else if (unit.startsWith("week")) {
-      futureDate.setDate(now.getDate() + amount * 7);
-    } else if (unit.startsWith("month")) {
-      futureDate.setMonth(now.getMonth() + amount);
-    } else if (unit.startsWith("year")) {
-      futureDate.setFullYear(now.getFullYear() + amount);
-    }
-
-    return futureDate;
+  if (relMatch) {
+    const amount = parseInt(relMatch[1], 10);
+    const unit = relMatch[2].toLowerCase();
+    const future = new Date(now);
+    if (unit.startsWith("m") && (unit === "m" || unit.startsWith("min"))) future.setMinutes(now.getMinutes() + amount);
+    else if (unit.startsWith("h")) future.setHours(now.getHours() + amount);
+    else if (unit.startsWith("day")) future.setDate(now.getDate() + amount);
+    else if (unit.startsWith("week")) future.setDate(now.getDate() + 7 * amount);
+    else if (unit.startsWith("month")) future.setMonth(now.getMonth() + amount);
+    else if (unit.startsWith("year")) future.setFullYear(now.getFullYear() + amount);
+    return future;
   }
 
-  // 🔹 Fallback to chrono natural language parsing
+  // 4️⃣ Chrono fallback for natural expressions
   const parsed = chrono.parseDate(dateText, now, { forwardDate: true });
   if (parsed) return parsed;
 
-  // 🔹 Default: today end of day
-  now.setHours(17, 0, 0, 0);
-  return now;
+  // 5️⃣ Final fallback: today 5 PM
+  return new Date(now.setHours(17, 0, 0, 0));
 }

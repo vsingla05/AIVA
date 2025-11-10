@@ -1,177 +1,171 @@
 import { Task } from "../../models/employees/index.js";
-import { Employee } from "../../models/employees/index.js";
-import parseDate from "../utils/parseDate.js";
+import parseFlexibleDate from "../utils/parseDate.js";
 import cleanJSON from "../utils/cleanJson.js";
-import SelectBestEmployee from "../ai/SelectBestEmployee.js";
 import runPrompt from "../llmFunctions/createTask.js";
 import calculatePhaseDeadlines from "../utils/calculatePhasesDeadline.js";
 import generateTaskPdf from "../pdf/generateTaskPdf.js";
 import { uploadFileFromBuffer } from "../../cloud/cloudinary.js";
-import sendTaskEmail from '../mails/taskMail.js'
+import sendTaskEmail from "../mails/taskMail.js";
+import { AssignTaskWithAI } from './assignTaskWithAI.js'
 
 export default async function HandleChatMessage(req, res) {
   const { command } = req.body;
   const hrId = req.user?._id;
 
   try {
-    // STEP 1: Extract task fields from AI
-    const extracted = await runPrompt("extractValues", command);
-    const cleaned = cleanJSON(extracted);
-
+    /* ─────────────────────────────
+       STEP 1 — Extract basic details
+    ───────────────────────────── */
     let taskData;
     try {
+      const extracted = await runPrompt("extractValues", command);
+      const cleaned = cleanJSON(extracted);
       taskData = JSON.parse(cleaned);
-    } catch {
+    } catch (err) {
+      console.error("❌ Error extracting task details:", err);
       return res.json({
         reply:
-          "Sorry, I couldn't extract the task details properly. Could you rephrase?",
+          "😕 I couldn’t understand all task details. Could you describe them more clearly?",
       });
     }
 
-    // STEP 2: Find latest incomplete task OR create new
-    let task = await Task.findOne({
-      assignedBy: hrId,
-      status: { $ne: "DONE" },
-    }).sort({ createdAt: -1 });
+    /* ─────────────────────────────
+       STEP 2 — Validate essentials
+    ───────────────────────────── */
+    const missing = [];
+    if (!taskData.task) missing.push("task title");
+    if (!taskData.description) missing.push("task description");
+    if (!taskData.deadline) missing.push("task deadline");
 
-    if (!task) task = new Task({ assignedBy: hrId });
-
-    // STEP 3: Merge AI fields
-    if (taskData.task) task.title = taskData.task;
-    if (taskData.deadline) {
-      const parsedDate = parseDate(taskData.deadline);
-      if (!parsedDate) {
-        return res.status(400).json({
-          reply:
-            "Sorry, I couldn't understand the deadline. Please provide a clearer date/time.",
-        });
-      }
-      task.dueDate = parsedDate;
+    if (missing.length) {
+      return res.json({
+        reply: `⚠️ Missing details: ${missing.join(", ")}. Please provide them.`,
+      });
     }
-    if (taskData.priority) task.priority = taskData.priority;
-    if (taskData.description) task.description = taskData.description;
-    if (taskData.requiredSkills) task.requiredSkills = taskData.requiredSkills;
-    if (taskData.estimatedHours) task.estimatedHours = taskData.estimatedHours;
 
+    /* ─────────────────────────────
+       STEP 3 — Parse deadline
+    ───────────────────────────── */
+    const parsedDate = parseFlexibleDate(taskData.deadline);
+    if (!parsedDate) {
+      return res.json({
+        reply:
+          "🕓 I couldn’t interpret the deadline. Please say it like ‘by 21/12/2025’ or ‘next Friday evening’.",
+      });
+    }
+
+    /* ─────────────────────────────
+       STEP 4 — Create initial Task
+    ───────────────────────────── */
+    const task = new Task({
+      assignedBy: hrId,
+      title: taskData.task,
+      description: taskData.description,
+      dueDate: parsedDate,
+      priority: taskData.priority || "MEDIUM",
+      requiredSkills: taskData.requiredSkills || [],
+      estimatedHours: taskData.estimatedHours || 8,
+    });
     await task.save();
 
-    // STEP 4: Check missing fields
-    const mergedData = {
-      task: task.title || "",
-      deadline: task.dueDate ? task.dueDate.toISOString() : "",
-      priority: task.priority || "",
-    };
-    const missingCheck = await runPrompt("missingField", mergedData);
-    if (missingCheck !== "All fields are complete.") {
-      return res.json({ reply: missingCheck });
-    }
-
-    // STEP 5: Generate phase content
-    const phaseContentJSON = await runPrompt("generatePhaseContent", { task });
-    const phaseContent = JSON.parse(cleanJSON(phaseContentJSON));
-
-    // STEP 6: Calculate deadlines
+    /* ─────────────────────────────
+       STEP 5 — Generate Phases
+    ───────────────────────────── */
     try {
-      const phasesWithDeadlines = calculatePhaseDeadlines(
-        phaseContent,
-        task.dueDate,
-        task.createdAt
+      const llmResponse = await runPrompt("generatePhaseContent", {
+        taskTitle: task.title,
+        taskDescription: task.description,
+        taskEstimatedHours: task.estimatedHours,
+      });
+      const phaseData = JSON.parse(cleanJSON(llmResponse));
+
+      const totalDays = Math.ceil(
+        (task.dueDate.getTime() - task.createdAt.getTime()) / (1000 * 60 * 60 * 24)
       );
-      task.phases = phasesWithDeadlines;
+
+      if (totalDays < 3) {
+        task.phases = [
+          {
+            title: "Main Task Phase",
+            description:
+              "Complete this task directly — no breakdown because of the short duration.",
+            estimatedEffort: task.estimatedHours || 8,
+            dueDate: task.dueDate,
+            status: "TODO",
+          },
+        ];
+      } else {
+        task.phases = calculatePhaseDeadlines(phaseData, task.dueDate, task.createdAt);
+      }
+
       await task.save();
     } catch (err) {
-      console.error("Error calculating deadlines:", err.message);
+      console.error("Phase generation error:", err);
+      return res.json({
+        reply:
+          "🧩 I couldn’t break the task into phases right now. Let’s try again later.",
+      });
     }
 
-    // STEP 7: Select best employee
-    let bestEmployee, suggestions;
-    try {
-      ({ bestEmployee, suggestions } = await SelectBestEmployee(task));
-    } catch (err) {
-      console.error("Error selecting best employee:", err.message);
-      return res.status(500).json({ reply: "Failed to select employee." });
+    /* ─────────────────────────────
+       STEP 6 — AI Assignment Engine
+    ───────────────────────────── */
+    const assignmentResult = await AssignTaskWithAI(task);
+    if (!assignmentResult.success) {
+      return res.json({
+        reply: `🙈 Couldn’t assign task automatically: ${assignmentResult.message}`,
+      });
     }
 
-    if (!bestEmployee) {
-      return res.status(500).json({ reply: "No suitable employee found." });
-    }
-    task.employeeId = bestEmployee._id;
-   
-    await task.save();
+    const { bestEmployee, fallbacks, reasoning } = assignmentResult;
 
-    // STEP 8: Generate PDF report and upload
+    /* ─────────────────────────────
+       STEP 7 — PDF Generation  
+    ───────────────────────────── */
     let pdfUrl = "";
     try {
-      const textReport = await runPrompt("generateReport", { task });
-      const pdfUint8Array = await generateTaskPdf(textReport);
-      const pdfBuffer = Buffer.from(pdfUint8Array);
-      const pdfFileName = `task_${task._id}_${bestEmployee._id}.pdf`;
-      pdfUrl = await uploadFileFromBuffer(pdfBuffer, pdfFileName, "Reports");
-      console.log("PDF uploaded:", pdfUrl);
+      const report = await runPrompt("generateReport", { task });
+      const pdfBytes = await generateTaskPdf(report);
+      const pdfBuffer = Buffer.from(pdfBytes);
+      const fileName = `task_${task._id}_${bestEmployee._id}.pdf`;
 
-      // Save PDF in employee's reports array
-      bestEmployee.reports.push({
-        taskId: task._id,
-        pdfUrl,
-        createdAt: new Date(),
-      });
-      bestEmployee.currentLoad += task.estimatedHours || 0;
-      bestEmployee.assignedBy = hrId
-      await bestEmployee.save();
-
-      // Save PDF URL in task
+      pdfUrl = await uploadFileFromBuffer(pdfBuffer, fileName, "AIVA/Reports");
       task.pdfUrl = pdfUrl;
       await task.save();
     } catch (err) {
-      console.error("Error generating/uploading PDF:", err);
+      console.error("PDF generation error:", err);
     }
 
-    // STEP 9: Save fallback employees
-    if (suggestions?.length > 0) {
-      task.fallbackEmployees = suggestions
-        .filter((e) => e._id.toString() !== bestEmployee._id.toString())
-        .map((e) => e._id);
-      await task.save();
-    }
-
-    // STEP 10: Update employee assignment status
+    /* ─────────────────────────────
+       STEP 8 — Email Notifications
+    ───────────────────────────── */
     try {
-      bestEmployee.isAssigned = true;
-      await bestEmployee.save();
+      if (pdfUrl) {
+        await sendTaskEmail(bestEmployee, task, pdfUrl);
+        for (const fb of fallbacks || []) {
+          await sendTaskEmail(fb, task, pdfUrl);
+        }
+      }
     } catch (err) {
-      console.error("Error updating employee assignment:", err);
+      console.error("Email sending error:", err);
     }
 
-    // STEP 11: Send email with PDF
-    try {
-      if (pdfUrl) await sendTaskEmail(bestEmployee, task, pdfUrl);
-      console.log("Email sent to:", bestEmployee.email);
-    } catch (err) {
-      console.error("Error sending email:", err);
-    }
-
-    // STEP 12: Construct reply
-    const fallbackNames = suggestions
-      ?.filter((e) => e._id.toString() !== bestEmployee._id.toString())
-      .map((e) => e.name);
-
-    const reply = `✅ Task saved successfully: "${task.title}" assigned to ${
-      bestEmployee.name
-    }.
-Fallback employees: ${
-      fallbackNames?.length > 0 ? fallbackNames.join(", ") : "None"
-    }.
-Deadline: ${task.dueDate ? task.dueDate.toISOString().split("T")[0] : "N/A"}, 
-Priority: ${task.priority || "N/A"}, Estimated Hours: ${
-      task.estimatedHours || "N/A"
-    }.
-PDF report: ${pdfUrl ? pdfUrl : "Not generated"}`;
+    /* ─────────────────────────────
+       STEP 9 — Final HR-friendly reply
+    ───────────────────────────── */
+    const fallbackNames = fallbacks?.map((f) => f.name).join(", ") || "None";
+    const reply = `Task "${task.title}" created and assigned to ${bestEmployee.name}.
+    Fallback employees: ${fallbackNames}.
+    Deadline: ${task.dueDate.toISOString().split("T")[0]}.
+    Reason (chosen by AI): ${reasoning}.
+    PDF: ${pdfUrl || "Not generated yet."}`;    
 
     return res.json({ reply });
   } catch (err) {
-    console.error("Error in HandleChatMessage:", err);
-    return res
-      .status(500)
-      .json({ reply: "Something went wrong while processing your task." });
+    console.error("💥 Fatal error in HandleChatMessage:", err);
+    return res.status(500).json({
+      reply:
+        "😞 Something unexpected happened while handling your request. Please try again shortly.",
+    });
   }
 }

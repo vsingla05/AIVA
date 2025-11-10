@@ -1,117 +1,105 @@
-import { Employee } from "../../models/employees/index.js";
-import stringSimilarity from "string-similarity"; // npm install string-similarity
+import Employee from "../../models/employees/index.js";
+import { filterEligibleEmployees } from "../utils/filterEligibleEmployees.js";
+import { calculateEmployeeScore } from "../utils/calculateEmployeeScore.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+dotenv.config();
 
-// Skill aliases map
-const skillAliases = {
-  "backend": ["backend development", "node.js", "api development", "java", "spring boot"],
-  "frontend": ["frontend development", "react", "angular", "vue", "ui/ux design", "front-end testing"],
-  "data analysis": ["data analytics", "excel", "python", "machine learning"],
-  "sales": ["negotiation", "client communication", "crm"],
-  "marketing": ["advertisement", "seo", "social media", "content creation"]
-};
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export default async function SelectBestEmployee(task) {
-  const employees = await Employee.find({ isActive: true });
+/**
+ * Main AI-powered employee selection logic
+ */
+export async function SelectBestEmployee(task) {
+  try {
+    console.log("🔍 Fetching employees...");
+    const all = await Employee.find({ isActive: true });
+    if (!all.length) return { bestEmployee: null, suggestions: [], reasoning: "No employees found." };
 
-  // 1. Filter eligible employees
-  const eligibleEmployees = employees.filter(emp => {
-    // Holiday check
-    const onHoliday = emp.availability.holidays.some(
-      d => d.toDateString() === task.dueDate.toDateString()
-    );
-    if (onHoliday) return false;
+    // 1️⃣ Filter unavailable/overloaded employees
+    const eligible = filterEligibleEmployees(all, task);
+    if (!eligible.length)
+      return { bestEmployee: null, suggestions: [], reasoning: "All employees unavailable or overloaded." };
 
-    // Workload check
-    const remainingHours = emp.availability.maxWeeklyHours - emp.currentLoad;
-    if (remainingHours < (task.estimatedHours || 0)) return false;
-
-    return true;
-  });
-
-  if (eligibleEmployees.length === 0) {
-    return { bestEmployee: null, suggestions: [] };
-  }
-
-  // 2. Score employees
-  const scoredEmployees = eligibleEmployees.map(emp => {
-    let skillScore = 0;
-
-    if (task.requiredSkills?.length) {
-      for (const reqSkill of task.requiredSkills) {
-        const reqName = reqSkill.name.toLowerCase();
-
-        let bestMatch = null;
-        let bestScore = 0;
-
-        for (const s of emp.skills) {
-          const empName = s.name.toLowerCase();
-
-          // Exact match
-          if (empName === reqName) {
-            bestMatch = s;
-            bestScore = 1;
-            break;
-          }
-
-          // Alias match
-          const aliases = skillAliases[reqName] || [];
-          if (aliases.includes(empName)) {
-            bestMatch = s;
-            bestScore = 0.9;
-            break;
-          }
-
-          // Fuzzy match
-          const similarity = stringSimilarity.compareTwoStrings(reqName, empName);
-          if (similarity > bestScore) {
-            bestMatch = s;
-            bestScore = similarity;
-          }
-        }
-
-        // Score contribution
-        if (bestMatch && bestScore > 0.6) { // threshold for "good enough"
-          skillScore += (bestScore * 5) + Math.max(0, bestMatch.level - reqSkill.level);
-        }
-      }
+    // 2️⃣ Calculate scores for eligible employees
+    const scored = [];
+    for (const emp of eligible) {
+      const { finalScore, breakdown } = await calculateEmployeeScore(task, emp);
+      scored.push({ emp, finalScore, breakdown });
     }
 
-    // Normalize skill score
-    const maxSkillScore = task.requiredSkills
-      ? task.requiredSkills.length * 5
-      : 1;
-    const normalizedSkill = skillScore / maxSkillScore;
+    // 3️⃣ Sort top 5
+    scored.sort((a, b) => b.finalScore - a.finalScore);
+    const top5 = scored.slice(0, 5);
 
-    // Workload score
-    const workLoadScore = emp.availability.maxWeeklyHours - emp.currentLoad;
-    const normalizedLoad = workLoadScore / emp.availability.maxWeeklyHours;
+    // 4️⃣ Ask Gemini to reason on top 5
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `
+You are an HR AI. Choose the most suitable employee for this task.
 
-    // Performance score
-    const normalizedPerformance =
-      (emp.performance.taskCompletionRate + emp.performance.avgQualityRating) / 2;
+Task:
+- Title: ${task.title}
+- Description: ${task.description}
+- Required Skills: ${task.requiredSkills.join(", ")}
+- Estimated Hours: ${task.estimatedHours}
+- Deadline: ${task.dueDate?.toISOString().split("T")[0]}
 
-    // Weighted sum
-    const totalScore =
-      normalizedSkill * 0.5 +
-      normalizedPerformance * 0.3 +
-      normalizedLoad * 0.2;
+Top Candidates:
+${top5
+  .map(
+    (c, i) =>
+      `${i + 1}. ${c.emp.name} 
+   Skills: ${c.emp.skills.map((s) => `${s.name} (lvl ${s.level})`).join(", ")}
+   Final Score: ${c.finalScore.toFixed(2)}
+   Performance: ${c.emp.performance?.performanceScore || 0}
+   Load: ${c.emp.currentLoad}/${c.emp.availability?.maxWeeklyHours || 40}
+`
+  )
+  .join("\n")}
 
-    return { employee: emp, score: totalScore };
-  });
+Return JSON only:
+{
+  "bestEmployee": "<name>",
+  "fallbackEmployees": ["<name1>", "<name2>"],
+  "reasoning": "<why you chose them>"
+}`;
 
-  if (scoredEmployees.length === 0) {
-    return { bestEmployee: null, suggestions: [] };
+    const res = await model.generateContent(prompt);
+    const text = res.response.text();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = {
+        bestEmployee: top5[0]?.emp.name,
+        fallbackEmployees: top5.slice(1, 3).map((s) => s.emp.name),
+        reasoning: "Fallback to top numeric scores due to JSON parsing error.",
+      };
+    }
+
+    // 5️⃣ Match names
+    const best = scored.find(
+      (s) => s.emp.name.toLowerCase() === parsed.bestEmployee?.toLowerCase()
+    )?.emp;
+    const fallbacks =
+      parsed.fallbackEmployees
+        ?.map(
+          (n) =>
+            scored.find(
+              (s) => s.emp.name.toLowerCase() === n.toLowerCase()
+            )?.emp
+        )
+        .filter(Boolean) || [];
+
+    // 6️⃣ Return result
+    return {
+      bestEmployee: best || top5[0]?.emp,
+      suggestions: fallbacks.length ? fallbacks : top5.slice(1, 3).map((s) => s.emp),
+      reasoning: parsed.reasoning || "Selected based on score and Gemini reasoning.",
+    };
+  } catch (err) {
+    console.error("❌ Error in SelectBestEmployee:", err);
+    return { bestEmployee: null, suggestions: [], reasoning: "Internal error during selection." };
   }
-
-  // 3. Sort by score
-  scoredEmployees.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-  // 4. Pick top
-  const highestScore = scoredEmployees[0].score;
-  const topEmployees = scoredEmployees.filter(e => e.score === highestScore);
-
-  const bestEmployee = topEmployees[0].employee;
-  const suggestions = scoredEmployees.slice(0, 3).map(e => e.employee);
-
-  return { bestEmployee, suggestions };
 }
