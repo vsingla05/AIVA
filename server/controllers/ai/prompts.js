@@ -1,17 +1,4 @@
 export const taskPrompts = {
-  missingField: `You are an assistant for an HR system. Input: a JSON object placeholder {TASK_DATA}.
-
-Task:
-1. Parse the JSON object {TASK_DATA} and check these keys: "task", "deadline", "priority".
-2. If any of those keys are missing or are empty strings, output a single, polite, human-like sentence to HR asking for the missing field(s). List all missing fields in that sentence.
-3. If all three fields are present and non-empty, output exactly: All fields are complete.
-
-OUTPUT CONSTRAINTS:
-- Output EXACTLY one plain-text sentence (no JSON, no markdown, no code fences).
-- Do NOT add extra explanation, examples, or surrounding quotes.
-- Example valid outputs:
-  - "Hi HR — please provide the deadline for 'Add New Note from React'."
-  - "All fields are complete."`,
 
   extractValues: `You are an assistant that extracts structured data from a free-text task description provided as {TASK_DATA}.
 
@@ -20,7 +7,7 @@ Return ONLY a single valid JSON object (no surrounding text) with exactly these 
 {
   "task": string,
   "description": string,
-  "deadline": string,
+  "deadline": string | number | null,
   "priority": "HIGH"|"MEDIUM"|"LOW",
   "requiredSkills": [ { "name": string, "level": integer 1-5 } ],
   "estimatedHours": number
@@ -28,9 +15,9 @@ Return ONLY a single valid JSON object (no surrounding text) with exactly these 
 
 RULES & GUIDELINES:
 - Use double quotes for keys and string values. Do not include comments.
-- "task": short title inferred from the text.
+- "task": short title inferred from the text. if not given create a concise one.
+- "deadline": don't touch deadline if it's already in the input, keep as is. If not, set to null.
 - "description": a short description. If none exists, generate a concise general description.
-- "deadline": natural-language deadline (e.g., "end of day tomorrow", "next Monday afternoon").
 - "priority": infer HIGH / MEDIUM / LOW. If not stated, set "MEDIUM".
 - "requiredSkills": an array (possibly empty). If skills are not listed, infer reasonable skills and assign levels (1–5).
 - "estimatedHours": positive number < 30. If not given, make a reasonable estimate.
@@ -39,7 +26,13 @@ RULES & GUIDELINES:
 
 Here is the task to process: {TASK_DATA}`,
 
-  generatePhaseContent: `You are a project manager AI. Inputs available: task title ({task.title}), task description ({task.description}), existing phases ({tasks_json}), raw task data ({TASK_DATA}).
+generatePhaseContent: `
+You are a project manager AI. Inputs available: 
+task title ({taskTitle}), 
+task description ({taskDescription}), 
+total estimated hours ({taskEstimatedHours})
+Existing Phases (if any): {tasks_json}, 
+raw task data ({TASK_DATA}).
 
 OUTPUT REQUIREMENTS:
 - Return ONLY a valid JSON ARRAY of 3 or 4 phase objects. No extra text.
@@ -48,17 +41,18 @@ OUTPUT REQUIREMENTS:
     "title": string,
     "description": string,
     "estimatedEffort": integer,
-    "tasks": [ { "title": string, "description": string } ]
+    "subtask": { "title": string, "description": string }
   }
 - "estimatedEffort" is a positive integer representing relative effort.
-- "tasks" must be an array of 2–6 subtask objects with title and description.
+- "subtask" should contain a title and description for a key deliverable within the phase.
 - Do NOT include dates, status fields, comments, or any additional keys.
-- If existing phases are provided in {tasks_json}, preserve their titles and expand them; otherwise generate sensible phases (e.g., Planning, Execution, Review).
+- If existing phases are provided in {tasks_json}, check for required structure and if not according to structure then convert into required structure; otherwise generate sensible phases according to required structure.
 
 Here is the input:
-Title: {task.title}
-Description: {task.description}
-Existing Phases: {tasks_json}
+Title: {taskTitle}
+Description: {taskDescription}
+Total estimated hours: {taskEstimatedHours}
+Existing Phases (if any): {tasks_json}
 Raw task data: {TASK_DATA}`,
 
   generateReport: `You are an expert Project Management Assistant. Input fields available within {task} and raw {TASK_DATA}: title, description, dueDate (final deadline), priority, employeeId.name, assignedBy.name, createdAt (report generation date), requiredSkills.

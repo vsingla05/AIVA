@@ -16,9 +16,7 @@ const employeeSchema = new mongoose.Schema(
     joinDate: { type: Date, default: Date.now },
 
     leaveBalance: {
-      cl: { type: Number, default: 6 },
-      sl: { type: Number, default: 6 },
-      el: { type: Number, default: 10 },
+      totalLeave: {type: Number, default:20},
     },
 
     assignedBy: {type: mongoose.Schema.Types.ObjectId, ref:'Employee'},
