@@ -23,5 +23,10 @@
     "streamifier": "^0.1.1",
     "string-similarity": "^4.0.4"
   },
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+    
+  },
   "type": "module"
 }
