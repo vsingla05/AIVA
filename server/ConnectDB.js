@@ -5,18 +5,26 @@ dotenv.config();
 
 const connectDb = async () => {
   try {
-    console.log("Connecting to DB:", process.env.MONGO_URI_ATLAS);
+    // 1. Check if already connected (readyState 1 = connected)
+    if (mongoose.connection.readyState === 1) {
+      return mongoose.connection;
+    }
 
-    const conn = await mongoose.connect(process.env.MONGO_URI_ATLAS, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // 2. Check if currently connecting (readyState 2 = connecting)
+    if (mongoose.connection.readyState === 2) {
+      console.log("⏳ MongoDB is connecting...");
+      return mongoose.connection;
+    }
 
-    console.log("✅ MongoDB Successfully connected to AIVA database");
+    // 3. Connect
+    const conn = await mongoose.connect(process.env.MONGO_URI_ATLAS);
+
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return conn; 
+
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err.message);
-    process.exit(1);
+    console.error(`❌ MongoDB Error: ${err.message}`);
+    
   }
 };
 

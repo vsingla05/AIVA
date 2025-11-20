@@ -1,5 +1,5 @@
-import Employee from "../../models/employees/index.js";
-import { filterEligibleEmployees } from "../utils/filterEligibleEmployees.js";
+import Employee from '../../models/employees/employeeModel.js'
+import { filterEligibleEmployees } from '../utils/filterEligibleEmployee.js'
 import { calculateEmployeeScore } from "../utils/calculateEmployeeScore.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
@@ -33,7 +33,7 @@ export async function SelectBestEmployee(task) {
     const top5 = scored.slice(0, 5);
 
     // 4️⃣ Ask Gemini to reason on top 5
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
 You are an HR AI. Choose the most suitable employee for this task.
 

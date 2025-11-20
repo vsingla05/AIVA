@@ -15,6 +15,7 @@ import Profile from './pages/employees/AddProfile.jsx'
 import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
 import TaskDetailsPage from './pages/employees/taskDetails.jsx'
 import HandleFinalTask from "./pages/hr/handleFinalTask.jsx";
+import GetAssignedTask from "./components/employees/task/getAssignedTask.jsx";
 
 const router = createBrowserRouter([
   {
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
           {
             path: 'hr/tasks-assign',
             element: <HandleFinalTask/>
+          },
+          {
+            path: 'employee/viewTask',
+            element: <GetAssignedTask/>
           }
         ]
       }

@@ -2,14 +2,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import MarkdownIt from "markdown-it";
 import puppeteer from "puppeteer";
 
-/**
- * 🧠 Smart hybrid PDF generator
- * - Detects if markdown is present
- * - Uses pdf-lib for plain text
- * - Uses Puppeteer + Markdown for formatted reports
- * @param {string} fullReport - Markdown or plain text report
- * @returns {Promise<Uint8Array>} PDF as bytes
- */
+
 export default async function generateTaskPdf(fullReport) {
   if (!fullReport || typeof fullReport !== "string") {
     throw new Error("Invalid report text provided");

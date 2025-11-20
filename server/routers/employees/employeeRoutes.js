@@ -6,6 +6,7 @@ import GetEmployee from '../../controllers/employees/GetEmployee.js'
 import GetEmployeeTasks from '../../controllers/employees/getEmployeeTasks.js'
 import GetIdTask from '../../controllers/employees/getIdTask.js'
 import Leave from '../../models/employees/leaveModel.js'
+import { getAssignedTask } from '../../controllers/employees/getAssignedTask.js'
 
 const router = express.Router()
 
@@ -18,6 +19,7 @@ router.get("/:id/leaves", async (req, res) => {
   const leaves = await Leave.find({ employeeId: req.params.id }).sort({ createdAt: -1 });
   res.json(leaves);
 });
+router.get('/getAssignedTask', Authentication, getAssignedTask)
 
     
 export default router

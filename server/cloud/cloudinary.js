@@ -1,9 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
+import multer from "multer";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -11,25 +11,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-    const folder = "AIVA/Uploads"; // 💼 store all manual uploads here
-    const resource_type = "auto";  // auto-detects images/docs
-
-    // Example: "profile_photo" or "cv_upload"
+    const folder = "AIVA/Uploads";
+    const resource_type = "auto";
     const fileType = file.mimetype.split("/")[1] || "raw";
 
     return {
       folder,
       resource_type,
-      format: fileType, // 'jpeg', 'png', 'pdf', etc.
+      format: fileType,
       public_id: `${Date.now()}_${file.originalname.split(".")[0]}`,
     };
   },
 });
 
+const upload = multer({ storage }); // ✅ Multer middleware
 
 export async function uploadFileFromBuffer(
   buffer,
@@ -42,9 +40,9 @@ export async function uploadFileFromBuffer(
       {
         folder,
         public_id: fileName,
-        resource_type: "raw", // ⚠️ Must use 'raw' for non-images (PDF, DOCX, etc.)
+        resource_type: "raw",
         format,
-        overwrite: false, // Prevents overwriting existing file
+        overwrite: false,
       },
       (error, result) => {
         if (error) reject(error);
@@ -55,6 +53,4 @@ export async function uploadFileFromBuffer(
   });
 }
 
-
-
-export { cloudinary, storage };
+export { cloudinary, storage, upload };

@@ -1,4 +1,4 @@
-import chrono from "chrono-node";
+import * as chrono from "chrono-node";
 import { parse, isValid } from "date-fns";
 
 export default function parseFlexibleDate(dateText) {

@@ -41,10 +41,8 @@ OUTPUT REQUIREMENTS:
     "title": string,
     "description": string,
     "estimatedEffort": integer,
-    "subtask": { "title": string, "description": string }
   }
 - "estimatedEffort" is a positive integer representing relative effort.
-- "subtask" should contain a title and description for a key deliverable within the phase.
 - Do NOT include dates, status fields, comments, or any additional keys.
 - If existing phases are provided in {tasks_json}, check for required structure and if not according to structure then convert into required structure; otherwise generate sensible phases according to required structure.
 
@@ -128,5 +126,31 @@ OUTPUT CONSTRAINTS:
 - "employeeMessage" should be 1–2 short sentences referencing the task and phase and the delay percent and new due date.
 - "actionItem" should be one concise corrective action.
 - Use double quotes. No extra fields, comments, or surrounding text.
-Here are the inputs for reference: {TASK_DATA}`
+Here are the inputs for reference: {TASK_DATA}`,
+
+  classifyRejectionReason: `
+Classify this mistake as SMALL or BIG:
+SMALL = formatting, typos, file issues, minor UI fixes.
+BIG = missing functionality, wrong approach, wrong logic, major rework.
+
+Or you can give by you own understanding if not clear.
+
+Return ONLY ONE WORD: SMALL or BIG.
+
+Reason: "${reason}"`,
+
+  classifyEmployeeRejection: `
+You are an HR AI assisting task management.
+Classify the employee's rejection reason into exactly one of these:
+
+1. "VALID_OVERLOAD"     → Employee has too much work already
+2. "VALID_UNSKILLED"    → Employee lacks required skills
+3. "VALID_TIME"         → Deadline is too short or unrealistic
+4. "VALID_PERSONAL"     → Personal or health emergency
+5. "INVALID"            → Excuse is unreasonable or not justified
+
+Return ONLY ONE WORD from above. No explanation.
+
+Reason Provided: "{reason}"
+`
 };

@@ -14,23 +14,33 @@ const employeeSchema = new mongoose.Schema(
     imageUrl: String,
     role: { type: String, default: "EMPLOYEE" },
     joinDate: { type: Date, default: Date.now },
-
     leaveBalance: {
-      totalLeave: {type: Number, default:20},
+      totalLeave: { type: Number, default: 20 },
     },
-
-    assignedBy: {type: mongoose.Schema.Types.ObjectId, ref:'Employee'},
-
+    assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     isActive: { type: Boolean, default: true },
     isAssigned: { type: Boolean, default: false },
-
     skills: [
       {
         name: String,
         level: { type: Number, default: 1 },
       },
     ],
-
+    skillEmbeddings: [
+      {
+        skill: String,
+        embedding: [Number],
+        updatedAt: { type: Date, default: Date.now },
+      },
+    ],
+    notifications: [
+      {
+        message: String,
+        createdAt: Date,
+        taskId: mongoose.Schema.Types.ObjectId,
+        isRead: Boolean,
+      },
+    ],
     reports: [
       {
         taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
@@ -38,41 +48,35 @@ const employeeSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-
-    currentLoad: { type: Number, default: 0 },
     availability: {
       maxWeeklyHours: { type: Number, default: 40 },
       holidays: [Date],
     },
+    currentLoad: { type: Number, default: 0 },
 
     performance: {
       taskCompletionRate: { type: Number, default: 0 },
       avgQualityRating: { type: Number, default: 0 },
-      performanceScore: { type: Number, default: 100 },
-      delayedTasks: { type: Number, default: 0 },
-      completedTasks: { type: Number, default: 0 },
       efficiency: { type: Number, default: 0 },
-      minorDelays: { type: Number, default: 0 },
-      majorDelays: { type: Number, default: 0 },
-      onTimeCompletedTask: { type: Number, default: 0 },
+      performanceScore: { type: Number, default: 100 },
     },
 
-    notification: [
-      {
-        taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
-        phaseId: { type: mongoose.Schema.Types.ObjectId },
-        phaseTitle: String,
-        message: String,
-        delayCategory: { type: String, enum: ["NONE", "MINOR", "MAJOR"] },
-        delayPercent: Number,
-        escalation: { type: Boolean, default: false },
-        actionItem: String,
-        createdAt: { type: Date, default: Date.now },
-        seen: { type: Boolean, default: false },
-      },
-    ],
+    taskStats: {
+      completedPhaseTasks: { type: Number, default: 0 },
+      delayedPhaseTasks: { type: Number, default: 0 },
 
-    totalTaskAssigned: { type: Number, default: 0 },
+      minorDelays: { type: Number, default: 0 },
+      majorDelays: { type: Number, default: 0 },
+
+      completedTasks: { type: Number, default: 0 },
+      delayedTasks: { type: Number, default: 0 },
+
+      totalEstimatedHours: { type: Number, default: 0 },
+      totalActualHours: { type: Number, default: 0 },
+
+      totalTaskAssigned: { type: Number, default: 0 },
+      rejectedTasks: { type: Number, default: 0 },
+    },
 
     refreshToken: String,
   },

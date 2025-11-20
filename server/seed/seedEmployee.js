@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { Employee } from "../models/employees/index.js";
 import connectDB from "../ConnectDB.js";
-import path from "path";
+import {getGeminiEmbedding} from '../controllers/ai/getEmbeddings.js'
 
 dotenv.config();
 
@@ -388,7 +388,6 @@ async function seedEmployees() {
     await connectDB();
     console.log("✅ Database connected");
 
-    // Remove old records
     await Employee.deleteMany({});
     console.log("🧹 Existing employees removed");
 
@@ -405,9 +404,19 @@ async function seedEmployees() {
 
       await employee.save();
       console.log(`✅ Employee added: ${emp.name}`);
+
+      // 🌟 Generate and cache embeddings for each skill
+      for (const skill of emp.skills) {
+        try {
+          const embedding = await getGeminiEmbedding(skill.name, employee._id);
+          console.log(`🧠 Embedding generated for ${emp.name} → ${skill.name}`);
+        } catch (embedErr) {
+          console.warn(`⚠️ Failed embedding for ${emp.name} → ${skill.name}:`, embedErr.message);
+        }
+      }
     }
 
-    console.log("🎉 All employees seeded successfully!");
+    console.log("🎉 All employees seeded + embeddings generated!");
     process.exit(0);
   } catch (err) {
     console.error("❌ Error seeding employees:", err);

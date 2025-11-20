@@ -10,7 +10,8 @@ export async function calculateEmployeeScore(task, employee) {
     const employeeSkillNames = employee.skills?.map((s) => s.name) || [];
     const semanticSkillScore = await getSemanticSkillScore(
       task.requiredSkills,
-      employeeSkillNames
+      employeeSkillNames,
+      employee._id
     );
 
     // 2️⃣ Average Skill Level (1–5)

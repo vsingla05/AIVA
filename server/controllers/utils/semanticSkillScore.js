@@ -1,11 +1,8 @@
-import { getGeminiEmbedding } from "./geminiEmbeddings.js";
+import { getEmbedding } from '../ai/getEmbeddings.js'
 import { cosineSimilarity } from "./similarity.js";
 
-/**
- * Compute semantic skill similarity between task and employee.
- * Uses Gemini embeddings to understand related tech (e.g. React ≈ Next.js)
- */
-export async function getSemanticSkillScore(taskSkills, employeeSkills) {
+
+export async function getSemanticSkillScore(taskSkills, employeeSkills, employeeId) {
   if (!taskSkills?.length || !employeeSkills?.length) return 0;
 
   let total = 0;
@@ -13,8 +10,8 @@ export async function getSemanticSkillScore(taskSkills, employeeSkills) {
     let bestMatch = 0;
     for (const empSkill of employeeSkills) {
       const [emb1, emb2] = await Promise.all([
-        getGeminiEmbedding(taskSkill),
-        getGeminiEmbedding(empSkill),
+        getEmbedding(taskSkill),
+        getEmbedding(empSkill, employeeId),
       ]);
       const sim = cosineSimilarity(emb1, emb2);
       if (sim > bestMatch) bestMatch = sim;

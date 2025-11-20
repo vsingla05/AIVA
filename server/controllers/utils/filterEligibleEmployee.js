@@ -1,7 +1,3 @@
-/**
- * Filter eligible employees before scoring.
- * Skips employees who are on leave, inactive, or over 90% workload.
- */
 export function filterEligibleEmployees(employees, task) {
   const eligible = [];
 

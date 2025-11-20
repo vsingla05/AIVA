@@ -10,22 +10,17 @@ const phaseSchema = new mongoose.Schema(
     dueDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["PENDING", "IN_PROGRESS", "DONE", "READY_FOR_REVIEW", "TODO"],
+      enum: ["PENDING", "IN_PROGRESS", "DONE", "TODO"],
       default: "TODO",
     },
+    isNotified: {
+      type: Boolean,
+      default: false,
+    },
+    phaseEstimatedHrs: { type: Number, default: 0 },
+    delayNotified: { type: Boolean, default: false },
+    notifications: String,
     completedAt: Date,
-
-    delayCategory: {
-      type: String,
-      enum: ["NONE", "MINOR", "MAJOR"],
-      default: "NONE",
-    },
-    delayPercent: { type: Number, default: 0 },
-
-    notificationsSent: {
-      overdueAlert: { type: Boolean, default: false },
-      completionDelayAlert: { type: Boolean, default: false },
-    },
   },
   { _id: true, timestamps: true }
 );
@@ -76,6 +71,7 @@ const taskSchema = new mongoose.Schema(
 
     // 📅 Scheduling and Priority
     dueDate: Date,
+    acceptedAt: Date,
     estimatedHours: { type: Number, default: 0 },
     priority: {
       type: String,
@@ -84,7 +80,17 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["TODO", "IN_PROGRESS", "ON_HOLD", "DONE", "READY_FOR_REVIEW"],
+      enum: [
+        "TODO", // Task created, not assigned yet
+        "ASSIGNED", // Assigned, waiting for employee response
+        "DECLINED_BY_EMPLOYEE", // Employee declined with reason
+        "REASSIGNMENT_PENDING", // HR deciding approve/reject decline
+        "REASSIGNED", // Task assigned to fallback employee
+        "IN_PROGRESS", // Accepted, work started
+        "ON_HOLD", // Work paused
+        "READY_FOR_REVIEW", // Employee submitted work
+        "DONE", // Task fully completed
+      ],
       default: "TODO",
     },
 
@@ -100,7 +106,6 @@ const taskSchema = new mongoose.Schema(
     pdfUrl: String,
     proof: {
       file: String,
-      comments: String,
       status: {
         type: String,
         enum: ["PENDING", "APPROVED", "REJECTED", "READY_FOR_REVIEW"],
@@ -110,6 +115,40 @@ const taskSchema = new mongoose.Schema(
       reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
       reviewedAt: Date,
     },
+
+    taskDelay: {
+      isDelayed: { type: Boolean, default: false },
+      delayDays: { type: Number, default: 0 },
+      delayNotified: { type: Boolean, default: false }, // to prevent duplicate alerts
+    },
+
+    employeeRejection: {
+      employeeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Employee",
+        default: null,
+      },
+      reason: { type: String, default: null },
+      classification: {
+        type: String,
+        enum: [
+          "VALID_OVERLOAD",
+          "VALID_UNSKILLED",
+          "VALID_TIME",
+          "VALID_PERSONAL",
+          "INVALID",
+        ],
+        default: null,
+      },
+      rejectedAt: { type: Date, default: null },
+    },
+
+    performanceTracking: {
+      delays: { type: Number, default: 0 }, // how many times task delayed
+    },
+
+    resubmissionDeadline: { type: Date, default: null },
+    resubmissionNotified: { type: Boolean, default: false },
 
     // 📊 Skills Required
     requiredSkills: [String], // ✅ simplified for semantic matching

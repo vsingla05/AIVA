@@ -1,6 +1,3 @@
-/**
- * Cosine similarity between two embedding vectors
- */
 export function cosineSimilarity(a, b) {
   if (!a?.length || !b?.length) return 0;
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
