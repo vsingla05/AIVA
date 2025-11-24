@@ -1,5 +1,5 @@
-import { Task } from "../../models/employees";
-import Employee from "../../models/employees";
+import Task from "../../models/employees/taskModel.js";
+import Employee from "../../models/employees/employeeModel.js";
 
 export const submitPhase = async (req, res) => {
   try {

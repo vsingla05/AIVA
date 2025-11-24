@@ -1,6 +1,7 @@
 import Task from "../../models/employees/taskModel.js";
 import Employee from "../../models/employees/employeeModel.js";
 import { sendAlertEmail } from "../mails/alertMail.js";
+import { sendTaskProof } from "./sendTaskProof.js";
 
 export async function handleFinalTaskSubmit(req, res) {
   try {
@@ -50,6 +51,10 @@ export async function handleFinalTaskSubmit(req, res) {
       level: "INFO",
       createdAt: now,
     });
+
+    const result = await sendTaskProof(taskId, employeeId)
+    io.to(managerRoom).emit("taskProofSubmitted", result.data);
+    
 
     /* -----------------------------------------------------
        5) Notify Manager (email)

@@ -1,6 +1,6 @@
-import Task from './../../models/employees/taskModel.js'
+import Task from '../../models/employees/taskModel.js'
 
-export async function getAssignedTask(req, res) {
+export async function getLatestTask(req, res) {
   try {
     const employeeId = req.user?._id
     if (!employeeId) {

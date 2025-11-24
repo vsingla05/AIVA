@@ -3,14 +3,14 @@ import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { Employee } from "../models/employees/index.js";
 import connectDB from "../ConnectDB.js";
-import {getGeminiEmbedding} from '../controllers/ai/getEmbeddings.js'
+import { getEmbedding } from "../controllers/ai/getEmbeddings.js";
 
 dotenv.config();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_KEY,
-  api_secret: process.env.CLOUDINARY_SECRET,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const localImagePath =
@@ -28,8 +28,8 @@ const employeesData = [
       { name: "JavaScript", level: 5 },
       { name: "React", level: 5 },
       { name: "Node.js", level: 4 },
-      { name: "MongoDB", level: 4 }
-    ]
+      { name: "MongoDB", level: 4 },
+    ],
   },
   {
     name: "Neha Kapoor",
@@ -40,8 +40,8 @@ const employeesData = [
       { name: "Python", level: 5 },
       { name: "Django", level: 4 },
       { name: "SQL", level: 4 },
-      { name: "REST APIs", level: 4 }
-    ]
+      { name: "REST APIs", level: 4 },
+    ],
   },
   {
     name: "Ritik Sharma",
@@ -52,8 +52,8 @@ const employeesData = [
       { name: "HTML", level: 4 },
       { name: "CSS", level: 4 },
       { name: "JavaScript", level: 3 },
-      { name: "React", level: 3 }
-    ]
+      { name: "React", level: 3 },
+    ],
   },
 
   // 🤖 AI & DATA SCIENCE TEAM
@@ -66,8 +66,8 @@ const employeesData = [
       { name: "Machine Learning", level: 5 },
       { name: "Python", level: 5 },
       { name: "Scikit-Learn", level: 4 },
-      { name: "Statistics", level: 4 }
-    ]
+      { name: "Statistics", level: 4 },
+    ],
   },
   {
     name: "Rohan Gupta",
@@ -78,8 +78,8 @@ const employeesData = [
       { name: "Deep Learning", level: 4 },
       { name: "TensorFlow", level: 4 },
       { name: "NLP", level: 4 },
-      { name: "Computer Vision", level: 3 }
-    ]
+      { name: "Computer Vision", level: 3 },
+    ],
   },
   {
     name: "Sanya Dutta",
@@ -90,8 +90,8 @@ const employeesData = [
       { name: "Data Cleaning", level: 3 },
       { name: "Pandas", level: 3 },
       { name: "Matplotlib", level: 3 },
-      { name: "SQL", level: 3 }
-    ]
+      { name: "SQL", level: 3 },
+    ],
   },
 
   // 🎨 UI/UX DESIGN TEAM
@@ -104,8 +104,8 @@ const employeesData = [
       { name: "UI Design", level: 5 },
       { name: "Figma", level: 4 },
       { name: "Prototyping", level: 4 },
-      { name: "Design Thinking", level: 4 }
-    ]
+      { name: "Design Thinking", level: 4 },
+    ],
   },
   {
     name: "Riya Oberoi",
@@ -116,8 +116,8 @@ const employeesData = [
       { name: "Graphic Design", level: 5 },
       { name: "Photoshop", level: 4 },
       { name: "Illustrator", level: 4 },
-      { name: "Branding", level: 3 }
-    ]
+      { name: "Branding", level: 3 },
+    ],
   },
   {
     name: "Tushar Jain",
@@ -128,8 +128,8 @@ const employeesData = [
       { name: "Wireframing", level: 3 },
       { name: "Figma", level: 3 },
       { name: "Color Theory", level: 3 },
-      { name: "Accessibility", level: 2 }
-    ]
+      { name: "Accessibility", level: 2 },
+    ],
   },
 
   // 📈 MARKETING TEAM
@@ -142,8 +142,8 @@ const employeesData = [
       { name: "Digital Marketing", level: 5 },
       { name: "SEO", level: 4 },
       { name: "Google Ads", level: 3 },
-      { name: "Social Media", level: 4 }
-    ]
+      { name: "Social Media", level: 4 },
+    ],
   },
   {
     name: "Karan Malhotra",
@@ -153,8 +153,8 @@ const employeesData = [
     skills: [
       { name: "Content Writing", level: 5 },
       { name: "Copywriting", level: 4 },
-      { name: "Email Marketing", level: 4 }
-    ]
+      { name: "Email Marketing", level: 4 },
+    ],
   },
   {
     name: "Avni Deshmukh",
@@ -164,8 +164,8 @@ const employeesData = [
     skills: [
       { name: "SEO", level: 3 },
       { name: "Social Media Ads", level: 3 },
-      { name: "Analytics", level: 3 }
-    ]
+      { name: "Analytics", level: 3 },
+    ],
   },
 
   // 💰 SALES TEAM
@@ -177,8 +177,8 @@ const employeesData = [
     skills: [
       { name: "B2B Sales", level: 5 },
       { name: "Negotiation", level: 4 },
-      { name: "CRM Tools", level: 4 }
-    ]
+      { name: "CRM Tools", level: 4 },
+    ],
   },
   {
     name: "Meera Iyer",
@@ -188,8 +188,8 @@ const employeesData = [
     skills: [
       { name: "Client Acquisition", level: 4 },
       { name: "Presentation Skills", level: 4 },
-      { name: "Lead Generation", level: 3 }
-    ]
+      { name: "Lead Generation", level: 3 },
+    ],
   },
   {
     name: "Adarsh Menon",
@@ -199,8 +199,8 @@ const employeesData = [
     skills: [
       { name: "Cold Calling", level: 3 },
       { name: "CRM", level: 3 },
-      { name: "Follow-ups", level: 2 }
-    ]
+      { name: "Follow-ups", level: 2 },
+    ],
   },
 
   // 🧾 FINANCE TEAM
@@ -212,8 +212,8 @@ const employeesData = [
     skills: [
       { name: "Accounting", level: 5 },
       { name: "Taxation", level: 4 },
-      { name: "Financial Analysis", level: 4 }
-    ]
+      { name: "Financial Analysis", level: 4 },
+    ],
   },
   {
     name: "Pooja Agarwal",
@@ -223,8 +223,8 @@ const employeesData = [
     skills: [
       { name: "Payroll", level: 4 },
       { name: "Excel", level: 4 },
-      { name: "Budget Planning", level: 3 }
-    ]
+      { name: "Budget Planning", level: 3 },
+    ],
   },
   {
     name: "Ravi Desai",
@@ -234,8 +234,8 @@ const employeesData = [
     skills: [
       { name: "Bookkeeping", level: 3 },
       { name: "Invoicing", level: 3 },
-      { name: "Reports", level: 2 }
-    ]
+      { name: "Reports", level: 2 },
+    ],
   },
 
   // 💼 HR TEAM
@@ -247,8 +247,8 @@ const employeesData = [
     skills: [
       { name: "HR Management", level: 5 },
       { name: "Recruitment", level: 4 },
-      { name: "Employee Relations", level: 4 }
-    ]
+      { name: "Employee Relations", level: 4 },
+    ],
   },
   {
     name: "Abhishek Tiwari",
@@ -258,8 +258,8 @@ const employeesData = [
     skills: [
       { name: "Payroll", level: 4 },
       { name: "Onboarding", level: 3 },
-      { name: "Conflict Resolution", level: 3 }
-    ]
+      { name: "Conflict Resolution", level: 3 },
+    ],
   },
   {
     name: "Isha Sharma",
@@ -269,8 +269,8 @@ const employeesData = [
     skills: [
       { name: "Interview Scheduling", level: 2 },
       { name: "HR Tools", level: 2 },
-      { name: "Documentation", level: 3 }
-    ]
+      { name: "Documentation", level: 3 },
+    ],
   },
 
   // ⚙️ OPERATIONS TEAM
@@ -282,8 +282,8 @@ const employeesData = [
     skills: [
       { name: "Project Management", level: 5 },
       { name: "Agile", level: 5 },
-      { name: "Scrum", level: 4 }
-    ]
+      { name: "Scrum", level: 4 },
+    ],
   },
   {
     name: "Aarav Patel",
@@ -293,8 +293,8 @@ const employeesData = [
     skills: [
       { name: "DevOps", level: 4 },
       { name: "AWS", level: 4 },
-      { name: "Monitoring", level: 3 }
-    ]
+      { name: "Monitoring", level: 3 },
+    ],
   },
   {
     name: "Vivek Das",
@@ -304,8 +304,8 @@ const employeesData = [
     skills: [
       { name: "Scheduling", level: 3 },
       { name: "Process Optimization", level: 3 },
-      { name: "Team Coordination", level: 2 }
-    ]
+      { name: "Team Coordination", level: 2 },
+    ],
   },
 
   // 🔒 SECURITY TEAM
@@ -317,8 +317,8 @@ const employeesData = [
     skills: [
       { name: "Cybersecurity", level: 5 },
       { name: "Penetration Testing", level: 4 },
-      { name: "OWASP", level: 4 }
-    ]
+      { name: "OWASP", level: 4 },
+    ],
   },
   {
     name: "Divya Rathi",
@@ -328,8 +328,8 @@ const employeesData = [
     skills: [
       { name: "Network Security", level: 3 },
       { name: "Vulnerability Testing", level: 3 },
-      { name: "Incident Response", level: 2 }
-    ]
+      { name: "Incident Response", level: 2 },
+    ],
   },
 
   // ☁️ CLOUD TEAM
@@ -341,8 +341,8 @@ const employeesData = [
     skills: [
       { name: "AWS", level: 5 },
       { name: "Azure", level: 4 },
-      { name: "Terraform", level: 4 }
-    ]
+      { name: "Terraform", level: 4 },
+    ],
   },
   {
     name: "Harshit Nair",
@@ -352,8 +352,8 @@ const employeesData = [
     skills: [
       { name: "Docker", level: 3 },
       { name: "Kubernetes", level: 3 },
-      { name: "CI/CD", level: 3 }
-    ]
+      { name: "CI/CD", level: 3 },
+    ],
   },
 
   // 🎯 MANAGEMENT TEAM
@@ -365,8 +365,8 @@ const employeesData = [
     skills: [
       { name: "Strategic Planning", level: 5 },
       { name: "Leadership", level: 4 },
-      { name: "Decision Making", level: 4 }
-    ]
+      { name: "Decision Making", level: 4 },
+    ],
   },
   {
     name: "Arnav Verma",
@@ -376,12 +376,10 @@ const employeesData = [
     skills: [
       { name: "Resource Allocation", level: 3 },
       { name: "Risk Management", level: 3 },
-      { name: "Reporting", level: 3 }
-    ]
-  }
+      { name: "Reporting", level: 3 },
+    ],
+  },
 ];
-
-
 
 async function seedEmployees() {
   try {
@@ -408,10 +406,20 @@ async function seedEmployees() {
       // 🌟 Generate and cache embeddings for each skill
       for (const skill of emp.skills) {
         try {
-          const embedding = await getGeminiEmbedding(skill.name, employee._id);
-          console.log(`🧠 Embedding generated for ${emp.name} → ${skill.name}`);
+          const skillText = `${skill.name.toLowerCase()} skill level ${
+            skill.level
+          }`;
+
+          const embedding = await getEmbedding(skillText, employee._id);
+
+          console.log(
+            `🧠 Embedding generated for ${emp.name} → ${skill.name} (level ${skill.level})`
+          );
         } catch (embedErr) {
-          console.warn(`⚠️ Failed embedding for ${emp.name} → ${skill.name}:`, embedErr.message);
+          console.warn(
+            `⚠️ Failed embedding for ${emp.name} → ${skill.name}:`,
+            embedErr.message
+          );
         }
       }
     }

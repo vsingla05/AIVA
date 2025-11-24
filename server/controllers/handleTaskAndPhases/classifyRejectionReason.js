@@ -1,11 +1,11 @@
-import { model } from "../ai/geminiClient";
-import { taskPrompts } from "../ai/prompts";
+import { aiModel } from "../ai/geminiClient.js";
+import { taskPrompts } from "../ai/prompts.js";
 
 export async function classifyRejectionSeverity(reason) {
   try {
-    const prompt = taskPrompts.classifyRejectionReason.replace("${reason}", reason);
+    const prompt = taskPrompts.classifyRejectionReason.replace(reason);
 
-    const result = await model.generateContent(prompt);
+    const result = await aiModel.generateContent(prompt);
     const text = result.response.text().trim().toUpperCase();
 
     return text.includes("BIG") ? "BIG" : "SMALL";

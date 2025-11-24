@@ -1,11 +1,11 @@
-import { handleEmployeeAcceptAction } from "./handleAcceptAction";
-import { handleEmployeeRejectAction } from "./handleRejectAction";
+import { handleEmployeeAcceptAction } from "./handleAcceptAction.js";
+import { handleEmployeeRejectAction } from "./handleRejectAction.js";
 
 export default async function handleEmployeeAction(req, res) {
   const userId = req.user?._id;
   try {
     const {taskId} = req.params;
-    const { action, reason } = req.body;
+    const { action, reason = "" } = req.body;
 
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
     if (!taskId) return res.status(400).json({ success: false, message: "taskId required" });

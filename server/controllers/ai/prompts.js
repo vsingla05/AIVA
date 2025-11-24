@@ -128,29 +128,32 @@ OUTPUT CONSTRAINTS:
 - Use double quotes. No extra fields, comments, or surrounding text.
 Here are the inputs for reference: {TASK_DATA}`,
 
-  classifyRejectionReason: `
-Classify this mistake as SMALL or BIG:
-SMALL = formatting, typos, file issues, minor UI fixes.
-BIG = missing functionality, wrong approach, wrong logic, major rework.
+  classifyRejectionReason: (reason) => `
+You are a task-analysis AI.
 
-Or you can give by you own understanding if not clear.
+Classify the severity of the mistake into ONLY one category:
 
-Return ONLY ONE WORD: SMALL or BIG.
+SMALL → minor issues such as typos, formatting, small UI bugs, missing comments, minor code cleanup.
+BIG → major issues such as wrong logic, incorrect implementation, missing functionality, breaking changes, large refactoring needs.
 
-Reason: "${reason}"`,
+Return EXACTLY one word: SMALL or BIG.
 
-  classifyEmployeeRejection: `
-You are an HR AI assisting task management.
-Classify the employee's rejection reason into exactly one of these:
+Reason: "${reason}"
+`,
 
-1. "VALID_OVERLOAD"     → Employee has too much work already
-2. "VALID_UNSKILLED"    → Employee lacks required skills
-3. "VALID_TIME"         → Deadline is too short or unrealistic
-4. "VALID_PERSONAL"     → Personal or health emergency
-5. "INVALID"            → Excuse is unreasonable or not justified
+  classifyEmployeeRejection: (reason) => `
+You are an HR assistant AI.
 
-Return ONLY ONE WORD from above. No explanation.
+Classify the employee's rejection reason into exactly ONE of these categories:
 
-Reason Provided: "{reason}"
-`
+1. VALID_OVERLOAD   → Employee is overloaded or already has too many tasks
+2. VALID_UNSKILLED  → Employee does not have the required skills or experience
+3. VALID_TIME       → Deadline is too short, unrealistic, or schedule conflict
+4. VALID_PERSONAL   → Personal emergency, health issues, urgent non-work matter
+5. INVALID          → The reason is vague, unreasonable, or not justifiable
+
+Return ONLY ONE label from above. No explanation.
+
+Reason Provided: "${reason}"
+`,
 };

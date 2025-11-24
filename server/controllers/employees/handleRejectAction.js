@@ -1,6 +1,6 @@
 import Task from "../../models/employees/taskModel.js";
 import Employee from "../../models/employees/employeeModel.js";
-import {classifyEmployeeRejection}  from './classifyEmployeRejection.js'
+import { classifyEmployeeRejection } from "./classifyEmployeeRejection.js";
 import { sendAlertEmail } from "../mails/alertMail.js";
 
 export async function handleEmployeeRejectAction(employeeId, taskId, reason, res) {
@@ -69,7 +69,7 @@ export async function handleEmployeeRejectAction(employeeId, taskId, reason, res
       await task.save();
 
       return res.status(200).json({
-        success: true,
+        success: false,
         classification,
         message:
           "Invalid rejection. Small penalty applied. Task remains assigned.",

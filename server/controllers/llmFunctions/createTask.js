@@ -1,5 +1,5 @@
 import { taskPrompts } from "../ai/prompts.js";
-import { model } from "../ai/geminiClient.js";
+import { aiModel } from "../ai/geminiClient.js";
 
 /**
  * Dynamically replaces placeholders in prompt templates with real values.
@@ -34,7 +34,7 @@ export default async function runPrompt(promptKey, taskData = {}) {
   promptWithData = promptWithData.replace(/\{.*?\}/g, ""); // removes unreplaced placeholders
 
   // 4️⃣ Call model
-  const result = await model.generateContent(promptWithData);
+  const result = await aiModel.generateContent(promptWithData);
   const text = result.response.text().trim();
 
   return text;

@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { socket } from "./socket.js";
 import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
@@ -16,6 +17,8 @@ import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
 import TaskDetailsPage from './pages/employees/taskDetails.jsx'
 import HandleFinalTask from "./pages/hr/handleFinalTask.jsx";
 import GetAssignedTask from "./components/employees/task/getAssignedTask.jsx";
+import EmployeeTaskAction from "./components/employees/task/handleEmployeeAction.jsx";
+import TaskOverviewCard from "./pages/employees/taskDetails.jsx";
 
 const router = createBrowserRouter([
   {
@@ -70,12 +73,22 @@ const router = createBrowserRouter([
           {
             path: 'employee/viewTask',
             element: <GetAssignedTask/>
+          },
+          {
+            path: 'employee/action',
+            element: <EmployeeTaskAction/>
+          },
+          {
+            path: 'task-overview/:id',
+            element: <TaskOverviewCard/>
           }
+          
         ]
       }
     ],
   },
 ]);
+
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

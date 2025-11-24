@@ -1,10 +1,10 @@
-import { model } from '../ai/geminiClient.js'
+import { aiModel } from '../ai/geminiClient.js'
 import { taskPrompts } from '../ai/prompts.js'
 
 export async function classifyEmployeeRejection(reason) {
-  const prompt = taskPrompts.classifyEmployeeRejection.replace("{reason}", reason);
+  const prompt = taskPrompts.classifyEmployeeRejection.replace(reason);
 
-  const result = await model.generateContent(prompt);
+  const result = await aiModel.generateContent(prompt);
   const classification = result.response.text().trim();
 
   return classification;

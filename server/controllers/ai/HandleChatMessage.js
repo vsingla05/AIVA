@@ -80,9 +80,8 @@ export default async function HandleChatMessage(req, res) {
       if (totalDays <= 2) {
         task.phases = [
           {
-            title: "Main Task Phase",
-            description:
-              "This short task will be completed in a single phase.",
+            title: task.title,
+            description: task.description,
             estimatedEffort: task.estimatedHours,
             dueDate: task.dueDate,
             status: "TODO",
@@ -152,6 +151,17 @@ export default async function HandleChatMessage(req, res) {
       console.error("PDF generation error:", err);
     }
 
+    global.io.to(bestEmployee._id.toString()).emit("newTaskAssigned", {
+      taskId: task._id,
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      phases: task.phases,
+      pdfUrl,
+      fallbacks,
+    });
+
     /* ─────────────────────────────
        STEP 9 — RESPONSE BACK TO HR
     ───────────────────────────── */
@@ -160,9 +170,9 @@ export default async function HandleChatMessage(req, res) {
         bestEmployee.name
       }.\nFallback employees: ${
         fallbacks?.map((f) => f.name).join(", ") || "None"
-      }\nDeadline: ${
-        task.dueDate.toISOString().split("T")[0]
-      }\nPDF: ${pdfUrl || "Not generated"}`,
+      }\nDeadline: ${task.dueDate.toISOString().split("T")[0]}\nPDF: ${
+        pdfUrl || "Not generated"
+      }`,
     });
   } catch (err) {
     console.error("💥 Fatal error:", err);

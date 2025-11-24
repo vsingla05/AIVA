@@ -1,4 +1,4 @@
-import { Employee } from "../../models/employees/index.js";
+import Employee from '../../models/employees/employeeModel.js'
 
 export default async function GetEmployee(req, res) {
     const eid = req.user?._id

@@ -1,22 +1,27 @@
-import OpenAI from "openai";
 import Employee from "../../models/employees/employeeModel.js";
-import dotenv from "dotenv";
-dotenv.config();
+import { pipeline } from "@xenova/transformers";
 
-// Initialize OpenAI client
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Singleton to hold the model pipeline so we only load it once
+class EmbeddingService {
+  static task = "feature-extraction";
+  static model = "Xenova/all-MiniLM-L6-v2";
+  static instance = null;
 
-// Use OpenAI’s free embedding model
-const EMBEDDING_MODEL = "text-embedding-3-small";
+  static async getInstance() {
+    if (!this.instance) {
+      console.log("⚙️ Loading local embedding model...");
+      this.instance = await pipeline(this.task, this.model);
+    }
+    return this.instance;
+  }
+}
 
 export async function getEmbedding(text, employeeId = null) {
   if (!text) throw new Error("❌ Empty text for embedding");
 
   const normalized = text.trim().toLowerCase();
 
-  // 1️⃣ Check Employee Cache First
+  // 1️⃣ Check Employee Cache First (Your existing logic)
   if (employeeId) {
     const emp = await Employee.findById(employeeId).select("skillEmbeddings");
     const cached = emp?.skillEmbeddings?.find(
@@ -24,40 +29,48 @@ export async function getEmbedding(text, employeeId = null) {
     );
 
     if (cached) {
-      // console.log("✨ Using cached embedding:", normalized);
       return cached.embedding;
     }
   }
 
-  // 2️⃣ Fetch fresh embedding from OpenAI
+  // 2️⃣ Generate Fresh Embedding Locally (FREE)
   let embedding;
   try {
-    const res = await client.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: normalized,
-    });
-
-    embedding = res.data[0].embedding; 
+    const extractor = await EmbeddingService.getInstance();
+    
+    // Generate embedding
+    // pooling: 'mean' averages the token vectors to get one sentence vector
+    // normalize: true ensures cosine similarity works correctly later
+    const output = await extractor(normalized, { pooling: 'mean', normalize: true });
+    
+    // Convert Tensor to plain JavaScript Array
+    embedding = Array.from(output.data);
+    
   } catch (err) {
-    console.error("❌ OpenAI Embedding Error:", err);
-    throw new Error("Embedding service unavailable");
+    console.error("❌ Local Embedding Error:", err);
+    throw new Error("Embedding generation failed");
   }
 
-  // 3️⃣ Cache embedding into employee document
+  // 3️⃣ Cache embedding (Your existing logic)
   if (employeeId) {
-    await Employee.findByIdAndUpdate(employeeId, {
-      $pull: { skillEmbeddings: { skill: normalized } }, // remove old
-    });
+    // Using updateOne is often slightly faster/safer for concurrent writes than findByIdAndUpdate with pull/push separate
+    await Employee.updateOne(
+      { _id: employeeId },
+      { $pull: { skillEmbeddings: { skill: normalized } } }
+    );
 
-    await Employee.findByIdAndUpdate(employeeId, {
-      $push: {
-        skillEmbeddings: {
-          skill: normalized,
-          embedding,
-          updatedAt: new Date(),
+    await Employee.updateOne(
+      { _id: employeeId },
+      { 
+        $push: {
+          skillEmbeddings: {
+            skill: normalized,
+            embedding,
+            updatedAt: new Date(),
+          },
         },
-      },
-    });
+      }
+    );
   }
 
   return embedding;

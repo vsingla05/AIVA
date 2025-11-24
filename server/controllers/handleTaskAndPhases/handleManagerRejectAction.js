@@ -123,7 +123,7 @@ Please fix the issues and resubmit.
     await task.save();
 
     return res.json({
-      success: true,
+      success: false,
       message: `Task rejected. Resubmission extended ${extensionDays} days.`,
       severity,
       extensionDays,

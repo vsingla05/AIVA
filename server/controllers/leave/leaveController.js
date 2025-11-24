@@ -2,7 +2,7 @@ import axios from "axios";
 import Leave from "../../models/employees/leaveModel.js";
 import Employee from "../../models/employees/employeeModel.js";
 import { decideLeave } from "../utils/deciedLeave.js";
-import { sendMail } from "../mails/mailer.js";
+import { sendAlertEmail } from "../mails/alertMail.js";
 import dotenv from "dotenv";
 
 dotenv.config();

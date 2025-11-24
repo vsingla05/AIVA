@@ -9,30 +9,51 @@ const employeeSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true },
     password: { type: String, required: true },
+
     phone: String,
     address: String,
     imageUrl: String,
+
+    /* ───────────────────────────────
+       ⚙️ Department
+    ─────────────────────────────── */
+    department: String,
+
     role: { type: String, default: "EMPLOYEE" },
     joinDate: { type: Date, default: Date.now },
+
+    /* ───────────────────────────────
+       🧳 Leave Balance
+    ─────────────────────────────── */
     leaveBalance: {
       totalLeave: { type: Number, default: 20 },
     },
+
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     isActive: { type: Boolean, default: true },
     isAssigned: { type: Boolean, default: false },
+
+    /* ───────────────────────────────
+       🧠 Skills
+    ─────────────────────────────── */
     skills: [
       {
         name: String,
-        level: { type: Number, default: 1 },
+        level: { type: Number, default: 1 }, // 1–5 recommended
       },
     ],
+
     skillEmbeddings: [
       {
-        skill: String,
-        embedding: [Number],
+        skill: String,       // "react skill level 3"
+        embedding: [Number], // 1536-d embedding vector
         updatedAt: { type: Date, default: Date.now },
       },
     ],
+
+    /* ───────────────────────────────
+       🔔 Notifications
+    ─────────────────────────────── */
     notifications: [
       {
         message: String,
@@ -41,6 +62,10 @@ const employeeSchema = new mongoose.Schema(
         isRead: Boolean,
       },
     ],
+
+    /* ───────────────────────────────
+       📄 Reports
+    ─────────────────────────────── */
     reports: [
       {
         taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
@@ -48,19 +73,31 @@ const employeeSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+
+    /* ───────────────────────────────
+       🕒 Availability
+    ─────────────────────────────── */
     availability: {
-      maxWeeklyHours: { type: Number, default: 40 },
-      holidays: [Date],
+      maxWeeklyHours: { type: Number, default: 40 }, // Realistic default
+      holidays: [Date], // Dates when employee is unavailable
     },
+
+    /* Current weekly load in hours */
     currentLoad: { type: Number, default: 0 },
 
+    /* ───────────────────────────────
+       📊 Performance Metrics
+    ─────────────────────────────── */
     performance: {
       taskCompletionRate: { type: Number, default: 0 },
       avgQualityRating: { type: Number, default: 0 },
-      efficiency: { type: Number, default: 0 },
-      performanceScore: { type: Number, default: 100 },
+      efficiency: { type: Number, default: 0 }, // Should start at 0
+      performanceScore: { type: Number, default: 100 }, // Global score (AI updated)
     },
 
+    /* ───────────────────────────────
+       📈 Task Statistics
+    ─────────────────────────────── */
     taskStats: {
       completedPhaseTasks: { type: Number, default: 0 },
       delayedPhaseTasks: { type: Number, default: 0 },
@@ -83,6 +120,9 @@ const employeeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/* ───────────────────────────────
+   🔐 Password Hashing
+─────────────────────────────── */
 employeeSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
@@ -90,6 +130,9 @@ employeeSchema.pre("save", async function (next) {
   next();
 });
 
+/* ───────────────────────────────
+   🔑 JWT Tokens
+─────────────────────────────── */
 employeeSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     { _id: this._id, role: this.role },
@@ -110,5 +153,8 @@ employeeSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+/* ───────────────────────────────
+   📦 Export Model
+─────────────────────────────── */
 const Employee = mongoose.model("Employee", employeeSchema);
 export default Employee;

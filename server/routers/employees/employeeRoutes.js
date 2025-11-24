@@ -6,20 +6,21 @@ import GetEmployee from '../../controllers/employees/GetEmployee.js'
 import GetEmployeeTasks from '../../controllers/employees/getEmployeeTasks.js'
 import GetIdTask from '../../controllers/employees/getIdTask.js'
 import Leave from '../../models/employees/leaveModel.js'
-import { getAssignedTask } from '../../controllers/employees/getAssignedTask.js'
+import handleEmployeeAction from '../../controllers/employees/handleEmployeeAction.js'
+import { getLatestTask } from '../../controllers/employees/getLatestTask.js'
 
 const router = express.Router()
 
 router.post('/signup', Signup)
 router.get('/all', Authentication, FetchEmployees)
 router.get('/getEmployee', Authentication, GetEmployee)
-router.get('/tasks', Authentication, GetEmployeeTasks)
-router.get('/task/:id', Authentication, GetIdTask)
+
 router.get("/:id/leaves", async (req, res) => {
   const leaves = await Leave.find({ employeeId: req.params.id }).sort({ createdAt: -1 });
   res.json(leaves);
 });
-router.get('/getAssignedTask', Authentication, getAssignedTask)
+
+
 
     
 export default router
