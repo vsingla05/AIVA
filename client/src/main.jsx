@@ -15,10 +15,10 @@ import Logout from './components/auth/Logout.jsx'
 import Profile from './pages/employees/AddProfile.jsx'
 import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
 import TaskDetailsPage from './pages/employees/taskDetails.jsx'
-import HandleFinalTask from "./pages/hr/handleFinalTask.jsx";
 import GetAssignedTask from "./components/employees/task/getAssignedTask.jsx";
 import EmployeeTaskAction from "./components/employees/task/handleEmployeeAction.jsx";
 import TaskOverviewCard from "./pages/employees/taskDetails.jsx";
+import ViewTaskProof from "./components/manager/viewTaskProof.jsx";
 
 const router = createBrowserRouter([
   {
@@ -67,10 +67,6 @@ const router = createBrowserRouter([
             element: <TaskDetailsPage/>
           },
           {
-            path: 'hr/tasks-assign',
-            element: <HandleFinalTask/>
-          },
-          {
             path: 'employee/viewTask',
             element: <GetAssignedTask/>
           },
@@ -81,6 +77,10 @@ const router = createBrowserRouter([
           {
             path: 'task-overview/:id',
             element: <TaskOverviewCard/>
+          },
+          {
+            path: 'task-proof/:id',
+            element: <ViewTaskProof/>
           }
           
         ]

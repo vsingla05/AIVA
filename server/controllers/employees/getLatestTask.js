@@ -1,18 +1,24 @@
-import Task from '../../models/employees/taskModel.js'
+import Task from "../../models/employees/taskModel.js";
 
 export async function getLatestTask(req, res) {
   try {
-    const employeeId = req.user?._id
+    const employeeId = req.user?._id;
+    console.log(employeeId);
     if (!employeeId) {
-      return res.status(400).json({ success: false, message: "employeeId is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "employeeId is required" });
     }
 
     const task = await Task.findOne({
       employeeId,
-      status: "ASSIGNED"
+      status: { $in: ["IN_PROGRESS", "READY_FOR_REVIEW"] },
     })
       .populate("assignedBy", "name email")
+      .populate("phases")
       .sort({ createdAt: -1 });
+
+    console.log(task);
 
     if (!task) {
       return res.status(200).json({
@@ -21,18 +27,10 @@ export async function getLatestTask(req, res) {
         message: "No newly assigned tasks found",
       });
     }
-
+    console.log(task);
     return res.status(200).json({
       success: true,
-      task: {
-        taskId: task._id,
-        title: task.title,
-        description: task.description,
-        assignedBy: task.assignedBy?.name || "AI System",
-        priority: task.priority,
-        dueDate: task.dueDate,
-        pdfUrl: task.pdfUrl
-      },
+      task,
     });
   } catch (err) {
     console.error("❌ getAssignedTask Error:", err);

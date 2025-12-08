@@ -14,10 +14,10 @@ import { sendTaskProof } from "../../controllers/handleTaskAndPhases/sendTaskPro
 const router = express.Router();
 
 // 1️⃣ Mark Phase Complete
-router.post("/:id/phase/:pid", Authentication, submitPhase);
+router.post("/:taskId/phase/:phaseId", Authentication, submitPhase);
 
 // 2️⃣ Employee Final Submit
-router.post("/:id/finalSubmit", Authentication, upload.single("file"), handleFinalTaskSubmit);
+router.post("/:taskId/finalSubmit", Authentication, upload.single("file"), handleFinalTaskSubmit);
 
 // 3️⃣ Employee Accept/Reject Action
 router.post('/action/:taskId', Authentication, handleEmployeeAction);
@@ -32,9 +32,9 @@ router.get('/task/:id', Authentication, GetIdTask)
 router.get('/latest', Authentication, getLatestTask)
 
 // 7️⃣ View Proof
-router.get('/view-proof', Authorization('hr'), sendTaskProof)
+router.get('/send-proof', Authentication, sendTaskProof)
 
 // 8️⃣ Manager Review Action (PUT AT BOTTOM)
-router.post('/:id/task/:tid', Authentication, handleManagerAction);
+router.post('/:tid/employee/:eid', Authentication, handleManagerAction);
 
 export default router;

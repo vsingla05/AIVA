@@ -39,20 +39,17 @@ global.io = io;
 io.on("connection", (socket) => {
   console.log("🟢 User Connected:", socket.id);
 
+  // Manager/Employee will join their personal room using ID
   socket.on("joinRoom", (userId) => {
-    socket.join(userId.toString());
-    console.log(`📌 User joined room: ${userId}`);
-  });
-
-  socket.on("managerJoin", () => {
-    socket.join("MANAGER_ROOM");
-    console.log("Manager joined room.");
+    socket.join(userId.toString());   // THIS is what you need
+    console.log(`📌 User joined personal room: ${userId}`);
   });
 
   socket.on("disconnect", () => {
-    console.log("🔴 User Disconnected:", socket.id);
+    console.log("🔴 User disconnected:", socket.id);
   });
 });
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

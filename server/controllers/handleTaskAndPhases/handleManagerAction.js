@@ -4,14 +4,15 @@ import {handleManagerRejectAction} from './handleManagerRejectAction.js'
 
 export default async function handleManagerAction(req, res) {
   try {
-    const { taskId, employeeId} = req.params;
+    const { tid, eid} = req.params;
     const {action, reason=""} = req.body;
+    console.log("in manager action",req.body)
 
 
     if (action === "accept") {
-      return await handleManagerAcceptAction(taskId, employeeId, res);
+      return await handleManagerAcceptAction(tid, eid, res);
     } else {
-      return await handleManagerRejectAction(taskId, employeeId, reason, res);
+      return await handleManagerRejectAction(tid, eid, reason, res);
     }
 
   } catch (err) {

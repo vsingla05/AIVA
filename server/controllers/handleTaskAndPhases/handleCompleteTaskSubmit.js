@@ -7,7 +7,9 @@ export async function handleFinalTaskSubmit(req, res) {
   try {
     const employeeId = req.user._id;
     const { taskId } = req.params;
-    const file = req.file?.path || null; 
+    const file = req.file?.path || null;
+    console.log(file);
+    console.log("taskID", taskId);
 
     const now = new Date();
 
@@ -39,7 +41,7 @@ export async function handleFinalTaskSubmit(req, res) {
     /* -----------------------------------------------------
        3) Store Employee Submission Time (VERY IMPORTANT)
     ----------------------------------------------------- */
-    task.completedAt = now;   // <—— IMPORTANT FIX
+    task.completedAt = now; // <—— IMPORTANT FIX
 
     /* -----------------------------------------------------
        4) Update Task Status
@@ -52,9 +54,14 @@ export async function handleFinalTaskSubmit(req, res) {
       createdAt: now,
     });
 
-    const result = await sendTaskProof(taskId, employeeId)
-    io.to(managerRoom).emit("taskProofSubmitted", result.data);
+    // const result = await sendTaskProof(task, employeeId)
     
+
+    //--------------------------------------------------------
+    // 🔥 SOCKET EVENT — send full task object to manager
+    //--------------------------------------------------------
+    const managerRoom = task.assignedBy._id.toString(); // manager ID
+    global.io.to(managerRoom).emit("taskProofSubmitted", task);
 
     /* -----------------------------------------------------
        5) Notify Manager (email)
@@ -81,7 +88,6 @@ Please review and approve/reject the submission in your dashboard.
       message: "Final proof submitted. Waiting for manager review.",
       status: task.status,
     });
-
   } catch (err) {
     console.error("❌ Final task submit error:", err);
     return res.status(500).json({

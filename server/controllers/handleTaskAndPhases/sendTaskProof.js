@@ -1,40 +1,42 @@
-import Task from '../../models/employees/taskModel.js'
-import Employee from '../../models/employees/employeeModel.js'
+import Task from "../../models/employees/taskModel.js";
 
-export const sendTaskProof = async (taskId, employeeId) => {
+export const sendTaskProof = async (req, res) => {
   try {
-    const task = await Task.findById(taskId)
-      .populate("proof.reviewedBy", "name")  
-      .populate("assignedTo", "name");       
+    const managerId = req.user?._id; // if needed later
 
-    if (!task) {
-      return { success: false, msg: "Task not found" };
+    const tasks = await Task.find({ status: "READY_FOR_REVIEW" })
+      .populate("employeeId", "name email")
+      .populate("proof.reviewedBy", "name");
+
+    if (!tasks.length) {
+      return res.json({
+        success: true,
+        tasks: [],
+        message: "No tasks pending review"
+      });
     }
 
-    // Fetch Employee
-    const employee = await Employee.findById(employeeId).select("name email");
-    if (!employee) {
-      return { success: false, msg: "Employee not found" };
-    }
-
-    // Build response
-    const response = {
-      taskTitle: task.title,
+    const response = tasks.map(task => ({
+      taskId: task._id,
+      title: task.title,
       dueDate: task.dueDate,
-      employeeName: employee.name,
+      employeeId: task.employeeId?._id,
+      employee: {
+        name: task.employeeId?.name,
+        email: task.employeeId?.email
+      },
       proof: {
         file: task.proof?.file,
         status: task.proof?.status,
         message: task.proof?.message,
-        reviewedBy: task.proof?.reviewedBy?.name || null,
-        reviewedAt: task.proof?.reviewedAt || null,
-      },
-    };
+      }
+    }));
+    console.log(response)
 
-    return { success: true, data: response };
+    return res.json({ success: true, tasks: response });
 
   } catch (err) {
     console.error("Error fetching task proof:", err);
-    return { success: false, msg: err.message };
+    return res.status(500).json({ success: false, msg: err.message });
   }
 };

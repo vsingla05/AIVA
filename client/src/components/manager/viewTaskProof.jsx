@@ -1,215 +1,123 @@
 import React, { useEffect, useState } from "react";
-import { socket } from "../../socket"; 
+import { socket } from "../../socket";
 import api from "../../components/auth/api";
+import { useSelector } from "react-redux";
 
-export default function viewTaskProof() {
+export default function ViewTaskProof() {
   const [proofList, setProofList] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
   const [notif, setNotif] = useState(null);
 
-  // Reject Modal State
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selectedProof, setSelectedProof] = useState(null);
+  const managerId = useSelector((state) => state.auth.user?._id);
 
-  // Listen for incoming proofs
+  /* 🔥 Fetch all proof submissions */
   useEffect(() => {
-    socket.emit("managerJoin");
-
-    socket.on("newProofSubmitted", (proofData) => {
-      setProofList((prev) => [proofData, ...prev]);
-      setNotif({
-        title: "New Proof Submitted",
-        message: `${proofData.employeeName} submitted proof for "${proofData.taskTitle}".`,
-      });
-
-      setTimeout(() => setNotif(null), 3500);
-    });
-
-    return () => socket.off("newProofSubmitted");
+    const fetchProofs = async () => {
+      try {
+        const res = await api.get("/task/send-proof");
+        if (res.data.tasks?.length > 0) setProofList(res.data.tasks);
+      } catch (err) {
+        console.log("❌ Failed to load proofs:", err.message);
+      }
+    };
+    fetchProofs();
   }, []);
 
-
-  /* --------------------------------------------------------
-     UNIFIED REVIEW HANDLER (ACCEPT + REJECT)
-  --------------------------------------------------------- */
-  const handleReviewAction = async (proof, actionType, reason = "") => {
+  const handleReview = async (task, type, reason = "") => {
     try {
-      const res = await api.post(
-        `/manager/task/${proof.taskId}/${proof.employeeId}`,
-        {
-          action: actionType,  
-          reason: reason,       
-        }
-      );
-
-      // Decide if accept or reject
-      const isAccept = actionType === "accept";
-
-      // Notification
-      setNotif({
-        title: isAccept ? "Task Approved" : "Task Rejected",
-        message: `Task "${proof.taskTitle}" has been ${isAccept ? "approved" : "rejected"}.`,
+      console.log("task in fun", task, type, reason)
+      await api.post(`/task/${task.taskId}/employee/${task.employeeId}`, {
+        action: type,
+        reason,
       });
 
-      // Update UI instantly
       setProofList((prev) =>
-        prev.map((p) =>
-          p.taskId === proof.taskId
-            ? {
-                ...p,
-                proof: {
-                  ...p.proof,
-                  status: isAccept ? "APPROVED" : "REJECTED",
-                  message: reason,
-                },
-              }
-            : p
+        prev.map((t) =>
+          t._id === task._id
+            ? { ...t, proof: { ...t.proof, status: type === "accept" ? "APPROVED" : "REJECTED", message: reason } }
+            : t
         )
       );
 
-      // Close modal on reject
-      if (!isAccept) {
-        setRejectModalOpen(false);
-        setRejectReason("");
-        setSelectedProof(null);
-      }
-
-    } catch (err) {
-      setNotif({
-        title: "Error",
-        message:
-          err.response?.data?.message ||
-          `Failed to ${actionType} this task.`,
-      });
+      showToast(`Task ${task.title} marked as ${type === "accept" ? "APPROVED" : "REJECTED"}`, "success");
+      setSelectedTask(null);
+      setRejectReason("");
+    } catch {
+      showToast("Failed to update status", "error");
     }
   };
 
-  // Approve
-  const onApproveClick = (proof) => {
-    handleReviewAction(proof, "accept");
-  };
-
-  // Reject Submit
-  const onRejectConfirm = () => {
-    if (!rejectReason.trim()) {
-      alert("Reason is required");
-      return;
-    }
-    handleReviewAction(selectedProof, "reject", rejectReason);
-  };
-
-  // Open Reject Modal
-  const openRejectModal = (proof) => {
-    setSelectedProof(proof);
-    setRejectModalOpen(true);
+  /* 🔔 Toast popup */
+  const showToast = (msg, type = "info") => {
+    setNotif({ msg, type });
+    setTimeout(() => setNotif(null), 3000);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-
-      {/* Notification */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-8">
+      
+      {/* Toast */}
       {notif && (
-        <div
-          className={`fixed top-6 right-6 shadow-lg border-l-4 p-4 rounded-lg z-50 bg-white ${
-            notif.title === "Error" ? "border-red-600" : "border-blue-600"
-          }`}
-        >
-          <h3
-            className={`font-semibold ${
-              notif.title === "Error" ? "text-red-700" : "text-blue-700"
-            }`}
-          >
-            {notif.title}
-          </h3>
-          <p className="text-gray-700 mt-1">{notif.message}</p>
+        <div className={`fixed top-6 right-6 px-5 py-3 rounded-xl shadow-xl text-white font-medium 
+          ${notif.type === "error" ? "bg-red-600" : notif.type === "success" ? "bg-green-600" : "bg-blue-600"} 
+          animate-slideDown`}>
+          {notif.msg}
         </div>
       )}
+      
+      <h1 className="text-4xl font-bold text-gray-800 mb-6 tracking-tight">📄 Task Proof Review</h1>
 
-      <h1 className="text-3xl font-bold mb-6">Manager Dashboard</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* GRID */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {proofList.length === 0 ? (
-          <div className="col-span-2 text-center text-gray-500 text-lg">
-            No proofs submitted yet.
+          <div className="col-span-full text-center py-20 text-gray-500 text-lg italic">
+            No submissions yet...
           </div>
         ) : (
-          proofList.map((proof, index) => {
-            const isReviewed = proof.proof.status !== "PENDING"; // Disable buttons
+          proofList.map((task, i) => {
+            const state = task.proof.status;
 
             return (
-              <div
-                key={index}
-                className="bg-white shadow-lg rounded-xl p-5 border border-gray-200"
+              <div 
+                key={i} 
+                className="bg-white p-6 rounded-2xl shadow-lg border hover:-translate-y-1 transition transform duration-200"
               >
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {proof.taskTitle}
-                </h2>
+                <h2 className="text-xl font-bold text-gray-800">{task.title}</h2>
+                <p className="text-sm text-gray-500 mt-1">By <b>{task.employee.name}</b></p>
 
-                <p className="text-sm text-gray-500 mt-1">
-                  Submitted by:{" "}
-                  <span className="font-medium text-gray-700">
-                    {proof.employeeName}
-                  </span>
-                </p>
+                {/* Status Chip */}
+                <span className={`mt-3 inline-block px-3 py-1 rounded-full text-xs text-white font-semibold
+                  ${state==="READY_FOR_REVIEW"?"bg-yellow-600":
+                    state==="APPROVED"?"bg-green-600":"bg-red-600"}`}>
+                  {state}
+                </span>
 
-                {/* Proof Card */}
-                <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    <strong>Status:</strong>{" "}
-                    <span
-                      className={`px-2 py-1 rounded text-white text-xs ${
-                        proof.proof.status === "PENDING"
-                          ? "bg-yellow-600"
-                          : proof.proof.status === "APPROVED"
-                          ? "bg-green-600"
-                          : "bg-red-600"
-                      }`}
-                    >
-                      {proof.proof.status}
-                    </span>
-                  </p>
-
-                  {proof.proof.message && (
-                    <p className="text-sm text-gray-700 mt-1">
-                      <strong>Message:</strong> {proof.proof.message}
-                    </p>
-                  )}
-
-                  <p className="mt-2 text-sm">
-                    <a
-                      href={proof.proof.file}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      📄 View Proof File
-                    </a>
-                  </p>
+                <div className="mt-4 bg-gray-50 rounded-lg p-4 border">
+                  <p className="text-sm"><b>Message:</b> {task.proof.message}</p>
+                  <a
+                    href={task.proof.file}
+                    target="_blank"
+                    className="mt-2 inline-block text-blue-600 font-semibold hover:underline"
+                  >
+                    📎 View Submitted File
+                  </a>
                 </div>
 
-                {/* APPROVE + REJECT BUTTONS */}
-                <div className="mt-4 flex gap-3">
+                {/* BUTTONS */}
+                <div className="flex gap-3 mt-5">
                   <button
-                    disabled={isReviewed}
-                    onClick={() => onApproveClick(proof)}
-                    className={`px-4 py-2 rounded-lg text-white ${
-                      isReviewed
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-700"
-                    }`}
-                  >
+                    onClick={() => handleReview(task, "accept")}
+                    disabled={state!=="READY_FOR_REVIEW"}
+                    className={`flex-1 py-2 rounded-lg font-medium text-white 
+                      ${state!=="READY_FOR_REVIEW"?"bg-gray-400 cursor-not-allowed":"bg-green-600 hover:bg-green-700"}`}>
                     Approve
                   </button>
-
                   <button
-                    disabled={isReviewed}
-                    onClick={() => openRejectModal(proof)}
-                    className={`px-4 py-2 rounded-lg text-white ${
-                      isReviewed
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-red-600 hover:bg-red-700"
-                    }`}
-                  >
+                    onClick={() => setSelectedTask(task)}
+                    disabled={state!=="READY_FOR_REVIEW"}
+                    className={`flex-1 py-2 rounded-lg font-medium text-white 
+                      ${state!=="READY_FOR_REVIEW"?"bg-gray-400 cursor-not-allowed":"bg-red-600 hover:bg-red-700"}`}>
                     Reject
                   </button>
                 </div>
@@ -219,41 +127,40 @@ export default function viewTaskProof() {
         )}
       </div>
 
-      {/* Reject Modal */}
-      {rejectModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-            <h3 className="text-lg font-semibold">Reject Task</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Provide a reason for rejection:
-            </p>
-
+      {/* REJECT MODAL */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl animate-fadeIn">
+            <h3 className="text-xl font-bold text-gray-700">Reject Task</h3>
             <textarea
-              className="w-full mt-3 p-3 border rounded-lg"
-              rows="4"
+              placeholder="Reason for rejection..."
+              rows="3"
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Enter rejection reason..."
-            ></textarea>
-
-            <div className="mt-4 flex justify-end gap-3">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded-lg"
-                onClick={() => setRejectModalOpen(false)}
-              >
+              onChange={(e)=>setRejectReason(e.target.value)}
+              className="w-full mt-4 p-3 border rounded-lg focus:ring-2 ring-red-400"
+            />
+            <div className="flex justify-end gap-3 mt-5">
+              <button onClick={()=>setSelectedTask(null)} className="px-4 py-2 rounded-lg bg-gray-300">
                 Cancel
               </button>
-
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded-lg"
-                onClick={onRejectConfirm}
-              >
+                onClick={()=>handleReview(selectedTask,"reject",rejectReason)}
+                disabled={!rejectReason.trim()}
+                className="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
                 Reject
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Animations */}
+      <style>{`
+        .animate-slideDown { animation: slideDown .35s ease forwards; }
+        @keyframes slideDown {from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
+        .animate-fadeIn { animation: fadeIn .35s ease; }
+        @keyframes fadeIn {from {opacity:0;} to {opacity:1;} }
+      `}</style>
 
     </div>
   );
