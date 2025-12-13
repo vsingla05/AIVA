@@ -5,6 +5,7 @@ import Employee from "../../models/employees/employeeModel.js";
 export async function handleEmployeeAcceptAction(userId, taskId, res) {
   try {
     const now = new Date();
+    console.log("inside handle accept");
 
     /* --------------------------------------------
        1) Find Task (must be ASSIGNED & belongs to employee)
@@ -12,7 +13,7 @@ export async function handleEmployeeAcceptAction(userId, taskId, res) {
     const task = await Task.findOne({
       _id: taskId,
       employeeId: userId,
-      status: "ASSIGNED",
+      status: "TODO",
     });
 
     if (!task) {
@@ -38,8 +39,7 @@ export async function handleEmployeeAcceptAction(userId, taskId, res) {
        3) CHECK: Did employee accept late?
     --------------------------------------------- */
     const assignedAt = new Date(task.createdAt);
-    const diffHours =
-      (now.getTime() - assignedAt.getTime()) / (1000 * 60 * 60); // ms → hours
+    const diffHours = (now.getTime() - assignedAt.getTime()) / (1000 * 60 * 60); // ms → hours
 
     const ALLOWED_WINDOW_HOURS = 24; // 1-day acceptance window
 
@@ -83,8 +83,11 @@ export async function handleEmployeeAcceptAction(userId, taskId, res) {
     // Add report log entry
     employee.reports.push({
       taskId: task._id,
-      pdfUrl: task.pdfUrl || null,
-      createdAt: now,
+      pdfUrl: {
+        view: task.pdfUrl.view,
+        download: task.pdfUrl.download,
+      },
+      createdAt: new Date(),
     });
 
     await employee.save();
@@ -111,23 +114,12 @@ export async function handleEmployeeAcceptAction(userId, taskId, res) {
     return res.status(200).json({
       success: true,
       message: "Task accepted and moved to IN_PROGRESS",
-      task: {
-        id: task._id,
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        dueDate: task.dueDate,
-        pdfUrl: task.pdfUrl,
-        phases: task.phases,
-        acceptedAt: task.acceptedAt,
-      },
+      task, 
       employee: {
         id: employee._id,
         name: employee.name,
       },
     });
-
   } catch (err) {
     console.error("❌ Error in handleAcceptAction:", err);
     return res.status(500).json({

@@ -2,7 +2,6 @@ import Task from "../../models/employees/taskModel.js";
 
 export const sendTaskProof = async (req, res) => {
   try {
-    const managerId = req.user?._id; // if needed later
 
     const tasks = await Task.find({ status: "READY_FOR_REVIEW" })
       .populate("employeeId", "name email")

@@ -15,26 +15,6 @@ export default function EmployeeTaskAction() {
   const user = useSelector((state) => state.auth.userDetails);
   const navigate = useNavigate();
 
-  /* ---------------------------------------------
-     SOCKET JOIN + REAL-TIME TASK LISTEN
-  --------------------------------------------- */
-  useEffect(() => {
-    if (user?._id) {
-      socket.emit("joinRoom", user._id);
-    }
-
-    socket.on("newTaskAssigned", (incomingTask) => {
-      setTask(incomingTask);
-      setLoading(false);
-    });
-
-    return () => socket.off("newTaskAssigned");
-  }, [user]);
-
-  /* ---------------------------------------------
-     LOAD EXISTING TASK ON PAGE LOAD
-  --------------------------------------------- */
-
   useEffect(() => {
     const fetchTask = async () => {
       try {
@@ -55,13 +35,13 @@ export default function EmployeeTaskAction() {
   --------------------------------------------- */
   const handleAccept = async () => {
     try {
-      const res = await api.post(`/task/action/${task.taskId}`, {
+      const res = await api.post(`/task/action/${task._id}`, {
         action: "accept",
       });
 
       alert("Task accepted successfully!");
 
-      navigate(`/task-overview/${task.taskId}`, {
+      navigate(`/task-overview/${task._id}`, {
         state: { task: res.data.task },
       });
     } catch (err) {

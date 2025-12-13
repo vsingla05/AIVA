@@ -12,7 +12,7 @@ export async function getLatestTask(req, res) {
 
     const task = await Task.findOne({
       employeeId,
-      status: { $in: ["IN_PROGRESS", "READY_FOR_REVIEW"] },
+      status: { $in: ["IN_PROGRESS", "READY_FOR_REVIEW", "TODO", "ASSIGNED"] },
     })
       .populate("assignedBy", "name email")
       .populate("phases")

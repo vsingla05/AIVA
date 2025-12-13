@@ -60,8 +60,8 @@ export async function handleFinalTaskSubmit(req, res) {
     //--------------------------------------------------------
     // 🔥 SOCKET EVENT — send full task object to manager
     //--------------------------------------------------------
-    const managerRoom = task.assignedBy._id.toString(); // manager ID
-    global.io.to(managerRoom).emit("taskProofSubmitted", task);
+    // const managerRoom = task.assignedBy._id.toString(); // manager ID
+    // global.io.to(managerRoom).emit("taskProofSubmitted", task);
 
     /* -----------------------------------------------------
        5) Notify Manager (email)
@@ -87,6 +87,7 @@ Please review and approve/reject the submission in your dashboard.
       success: true,
       message: "Final proof submitted. Waiting for manager review.",
       status: task.status,
+      task
     });
   } catch (err) {
     console.error("❌ Final task submit error:", err);

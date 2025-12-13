@@ -145,15 +145,6 @@ export default async function HandleChatMessage(req, res) {
       // BEST employee
       await Employee.findByIdAndUpdate(bestEmployee._id, {
         $push: {
-          reports: {
-            taskId: task._id,
-            pdfUrl: {
-              view: pdfMeta.viewUrl,
-              download: pdfMeta.downloadUrl,
-            },
-            createdAt: new Date(),
-          },
-
           notifications: {
             message: `A new task (${task.title}) is assigned to you.`,
             pdfUrl: pdfMeta.viewUrl,
@@ -208,17 +199,17 @@ export default async function HandleChatMessage(req, res) {
       console.error("Email sending error:", err);
     }
 
-    /* STEP 12 — Real-time notify frontend */
-    global.io.to(bestEmployee._id.toString()).emit("newTaskAssigned", {
-      taskId: task._id,
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      dueDate: task.dueDate,
-      phases: task.phases,
-      pdfUrl: pdfMeta,
-      fallbacks,
-    });
+    // /* STEP 12 — Real-time notify frontend */
+    // global.io.to(bestEmployee._id.toString()).emit("newTaskAssigned", {
+    //   taskId: task._id,
+    //   title: task.title,
+    //   description: task.description,
+    //   priority: task.priority,
+    //   dueDate: task.dueDate,
+    //   phases: task.phases,
+    //   pdfUrl: pdfMeta,
+    //   fallbacks,
+    // });
 
     /* STEP 13 — Reply to HR */
     const fallbackNames = fallbacks.length

@@ -3,6 +3,7 @@ import Employee from "../../models/employees/employeeModel.js";
 
 export const submitPhase = async (req, res) => {
   try {
+    console.log("inside submit phase")
     const { taskId, phaseId } = req.params;
     const employeeId = req.user._id;
 

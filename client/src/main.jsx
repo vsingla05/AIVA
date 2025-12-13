@@ -75,7 +75,7 @@ const router = createBrowserRouter([
             element: <TaskOverviewCard />,
           },
           {
-            path: "task-proof/:id",
+            path: "view-taskProofs",
             element: <ViewTaskProof />,
           },
           {

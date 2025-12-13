@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import {useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../../components/auth/api";
+import { useParams, useNavigate } from "react-router-dom";
 
 // --- Small UI components ---
 const Badge = ({ children, className = "" }) => (
@@ -54,6 +55,9 @@ export default function TaskOverviewCard() {
   const { state } = useLocation();
   const initialTask = state?.task || null;
 
+  const {id} = useParams()
+  const navigate = useNavigate()
+
   const [task, setTask] = useState(initialTask);
   const [loading, setLoading] = useState(!initialTask);
   const [notif, setNotif] = useState(null);
@@ -66,29 +70,6 @@ export default function TaskOverviewCard() {
   const [isCompletingPhase, setIsCompletingPhase] = useState(false);
   const [isSubmittingProof, setIsSubmittingProof] = useState(false);
 
-  // ----------------------
-  // Load Task
-  // ----------------------
-  useEffect(() => {
-    if (task) return;
-
-    const fetchTask = async () => {
-      try {
-        setLoading(true);
-        const latest = await api.get("/task/latest");
-
-        if (latest.data.task) {
-          setTask(latest.data.task);
-        }
-      } catch (err) {
-        setNotif({ type: "error", title: "Error", message: "Failed to load task" });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTask();
-  }, [task]);
 
   // ----------------------
   // Progress based on STATUS (NOT completedAt)
@@ -110,10 +91,11 @@ export default function TaskOverviewCard() {
   };
 
   const completePhase = async () => {
+    console.log("insited phascom", task)
     try {
       setIsCompletingPhase(true);
 
-      const res = await api.post(`/task/${task._id}/phase/${selectedPhase._id}`);
+      const res = await api.post(`/task/${id}/phase/${selectedPhase._id}`);
       const updated = res.data.task || res.data;
 
       setTask(updated);
@@ -138,37 +120,53 @@ export default function TaskOverviewCard() {
   const handleProofChange = (e) => setProofFile(e.target.files[0]);
 
   const submitProof = async () => {
-    if (!proofFile) {
-      return setNotif({ type: "error", title: "Missing File", message: "Please select a file." });
-    }
+  if (!proofFile) {
+    return setNotif({
+      type: "error",
+      title: "Missing File",
+      message: "Please select a file.",
+    });
+  }
 
-    try {
-      setIsSubmittingProof(true);
+  try {
+    setIsSubmittingProof(true);
 
-      const form = new FormData();
-      form.append("file", proofFile);
+    const form = new FormData();
+    form.append("file", proofFile);
 
-      const res = await api.post(`/task/${task._id}/finalSubmit`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    const res = await api.post(`/task/${id}/finalSubmit`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-      const updated = res.data.updatedTask || res.data.task || res.data;
-      setTask(updated);
+    const updated = res.data.updatedTask || res.data.task || res.data;
+    setTask(updated);
 
-      setProofModalOpen(false);
-      setProofFile(null);
+    setProofModalOpen(false);
+    setProofFile(null);
 
-      setNotif({ type: "success", title: "Submitted", message: "Your proof has been submitted." });
-    } catch (err) {
-      setNotif({
-        type: "error",
-        title: "Upload Failed",
-        message: err.response?.data?.message || "Upload failed.",
-      });
-    } finally {
-      setIsSubmittingProof(false);
-    }
-  };
+    // Show notification
+    setNotif({
+      type: "success",
+      title: "Submitted",
+      message: "Your proof has been submitted.",
+    });
+
+    // Redirect after short delay
+    setTimeout(() => {
+      navigate("/");
+    }, 800);
+
+  } catch (err) {
+    setNotif({
+      type: "error",
+      title: "Upload Failed",
+      message: err.response?.data?.message || "Upload failed.",
+    });
+  } finally {
+    setIsSubmittingProof(false);
+  }
+};
+
 
   // ----------------------
   // Submit Proof Button Conditions
