@@ -13,7 +13,7 @@ import taskRoutes from './routers/task/taskRoutes.js';
 import leaveRoutes from './routers/leave/leaveRoutes.js';
 
 // Jobs
-import { startScheduler } from './jobs/scheduler.js';
+import { startScheduler, stopScheduler } from './jobs/scheduler.js';
 
 dotenv.config();
 
@@ -82,3 +82,6 @@ const startServer = async () => {
 };
 
 startServer();
+
+
+

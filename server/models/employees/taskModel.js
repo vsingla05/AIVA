@@ -103,7 +103,10 @@ const taskSchema = new mongoose.Schema(
     aiLogs: [aiLogSchema], // detailed reasoning history
 
     // 📎 Task Assets
-    pdfUrl: String,
+    pdfUrl: {
+      view: String, // cloudinary secure_url
+      download: String, // ?fl_attachment=
+    },
     proof: {
       file: String,
       status: {

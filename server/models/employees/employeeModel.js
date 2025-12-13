@@ -45,7 +45,7 @@ const employeeSchema = new mongoose.Schema(
 
     skillEmbeddings: [
       {
-        skill: String,       // "react skill level 3"
+        skill: String, // "react skill level 3"
         embedding: [Number], // 1536-d embedding vector
         updatedAt: { type: Date, default: Date.now },
       },
@@ -69,7 +69,10 @@ const employeeSchema = new mongoose.Schema(
     reports: [
       {
         taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
-        pdfUrl: String,
+        pdfUrl: {
+          view: String,
+          download: String,
+        },
         createdAt: { type: Date, default: Date.now },
       },
     ],

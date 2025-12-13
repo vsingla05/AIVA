@@ -1,7 +1,6 @@
 import { SelectBestEmployee } from "./SelectBestEmployee.js";
 import Employee from "../../models/employees/employeeModel.js";
 import { Task } from "../../models/employees/index.js";
-import sendTaskEmail from "../mails/taskMail.js";
 
 export async function AssignTaskWithAI(task) {
   try {
@@ -18,29 +17,8 @@ export async function AssignTaskWithAI(task) {
     task.employeeId = bestEmployee._id;
     task.fallbackEmployees = suggestions.map((e) => e._id);
     task.reasoning = reasoning;
-    task.status = "ASSIGNED";
+    task.status = "TODO";
     await task.save();
-
-
-    for (const fb of suggestions) {
-      await Employee.findByIdAndUpdate(fb._id, {
-        $push: {
-          reports: {
-            taskId: task._id,
-            createdAt: new Date(),
-            isFallback: true,
-          },
-          notifications: {
-            message: `A new task (${
-              task.title || task._id
-            }) was created and you are selected as a fallback employee.`,
-            createdAt: new Date(),
-            taskId: task._id,
-            isRead: false,
-          },
-        },
-      });
-    }
 
     await Task.findByIdAndUpdate(task._id, {
       $push: {
@@ -52,16 +30,6 @@ export async function AssignTaskWithAI(task) {
         },
       },
     });
-
-    try {
-      await sendTaskEmail(bestEmployee, task, task.pdfUrl);
-
-      for (const fb of suggestions) {
-        await sendTaskEmail(fb, task, task.pdfUrl);
-      }
-    } catch (err) {
-      console.error("Email error:", err);
-    }
 
     return {
       success: true,
@@ -75,3 +43,6 @@ export async function AssignTaskWithAI(task) {
     return { success: false, message: "Internal AI assignment error." };
   }
 }
+
+
+

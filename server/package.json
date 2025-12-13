@@ -32,6 +32,9 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "monitoring": "node monitoring-service.js",
+    "monitoring:dev": "nodemon monitoring-service.js",
+    "monitoring:test": "RUN_ON_STARTUP=true MONITORING_CRON='*/5 * * * *' node monitoring-service.js"
   }
 }

@@ -5,16 +5,16 @@ import "./index.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App.jsx";
 import Login from "./pages/auth/login.jsx";
-import Signup from './pages/employees/Signup.jsx'
+import Signup from "./pages/employees/Signup.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
 import AuthLayout from "./components/auth/authLayout.jsx";
 import Home from "./pages/auth/Home.jsx";
 import ChatBot from "./ai/ChatBot.jsx";
-import Logout from './components/auth/Logout.jsx'
-import Profile from './pages/employees/AddProfile.jsx'
+import Logout from "./components/auth/Logout.jsx";
+import Profile from "./pages/employees/AddProfile.jsx";
 import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
-import TaskDetailsPage from './pages/employees/taskDetails.jsx'
+import TaskDetailsPage from "./pages/employees/taskDetails.jsx";
 import GetAssignedTask from "./components/employees/task/getAssignedTask.jsx";
 import EmployeeTaskAction from "./components/employees/task/handleEmployeeAction.jsx";
 import TaskOverviewCard from "./pages/employees/taskDetails.jsx";
@@ -26,8 +26,8 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       {
-        path: '',
-        element: <Home/>
+        path: "",
+        element: <Home />,
       },
       {
         path: "auth/login",
@@ -36,10 +36,6 @@ const router = createBrowserRouter([
       {
         path: "user/signup",
         element: <Signup />,
-      },
-      {
-        path: 'chatbot',
-        element: <ChatBot/>
       },
 
       {
@@ -52,43 +48,45 @@ const router = createBrowserRouter([
         ],
       },
       {
-        element: <AuthLayout roles={['EMPLOYEE']} />,
+        element: <AuthLayout roles={["EMPLOYEE"]} />,
         children: [
           {
-            path: 'employee/addProfile',
-            element: <Profile/>
+            path: "employee/addProfile",
+            element: <Profile />,
           },
           {
-            path: 'employee/tasks',
-            element: <AllEmployeeTasks/>
+            path: "employee/tasks",
+            element: <AllEmployeeTasks />,
           },
           {
-            path: 'employee/task/:id',
-            element: <TaskDetailsPage/>
+            path: "employee/task/:id",
+            element: <TaskDetailsPage />,
           },
           {
-            path: 'employee/viewTask',
-            element: <GetAssignedTask/>
+            path: "employee/viewTask",
+            element: <GetAssignedTask />,
           },
           {
-            path: 'employee/action',
-            element: <EmployeeTaskAction/>
+            path: "employee/action",
+            element: <EmployeeTaskAction />,
           },
           {
-            path: 'task-overview/:id',
-            element: <TaskOverviewCard/>
+            path: "task-overview/:id",
+            element: <TaskOverviewCard />,
           },
           {
-            path: 'task-proof/:id',
-            element: <ViewTaskProof/>
-          }
-          
-        ]
-      }
+            path: "task-proof/:id",
+            element: <ViewTaskProof />,
+          },
+          {
+            path: "chatbot",
+            element: <ChatBot />,
+          },
+        ],
+      },
     ],
   },
 ]);
-
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
