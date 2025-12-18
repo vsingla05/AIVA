@@ -7,7 +7,7 @@ import {handleFinalTaskSubmit} from '../../controllers/handleTaskAndPhases/handl
 import handleEmployeeAction from "../../controllers/employees/handleEmployeeAction.js";
 import { getLatestTask } from "../../controllers/employees/getLatestTask.js";
 import GetEmployeeTasks from "../../controllers/employees/getEmployeeTasks.js";
-import GetIdTask from "../../controllers/employees/getIdTask.js";
+import GetIdTask from "../../controllers/employees/getTaskByID.js";
 import {Authorization} from "../../middlewares/index.js";
 import { sendTaskProof } from "../../controllers/handleTaskAndPhases/sendTaskProof.js";
 
@@ -32,7 +32,7 @@ router.get('/task/:id', Authentication, GetIdTask)
 router.get('/latest', Authentication, getLatestTask)
 
 // 7️⃣ View Proof
-router.get('/send-proof', Authentication, sendTaskProof)
+router.get('/send-proofs', Authentication, sendTaskProof)
 
 // 8️⃣ Manager Review Action (PUT AT BOTTOM)
 router.post('/:tid/employee/:eid', Authentication, handleManagerAction);

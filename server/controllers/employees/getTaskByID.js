@@ -4,7 +4,9 @@ export default async function GetIdTask(req, res) {
   const { id } = req.params;
 
   try {
-    const task = await Task.findById(id).populate('assignedBy');
+    const task = await Task.findById(id)
+                .populate('assignedBy')
+                .populate('phases')
 
     if (!task) {
       return res.status(404).json({ message: "Task not found" });

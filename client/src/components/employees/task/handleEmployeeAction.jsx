@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import api from "../../auth/api";
 import { motion } from "framer-motion";
-import { socket } from "../../../socket";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-export default function EmployeeTaskAction() {
+export default function EmployeeTaskAction({ taskId, initialStatus, initialRejectionReason }) {
   const [task, setTask] = useState(null);
+  const [status, setStatus] = useState(initialStatus || "PENDING");
+  const [reason, setReason] = useState(initialRejectionReason || "");
+  const [showReason, setShowReason] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
+  const [msg, setMsg] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const user = useSelector((state) => state.auth.userDetails);
   const navigate = useNavigate();
@@ -20,8 +21,10 @@ export default function EmployeeTaskAction() {
       try {
         const res = await api.get("/task/latest");
         setTask(res.data.task);
+        setStatus(res.data.task.status);
+        console.log(task)
       } catch {
-        setError("Could not fetch task.");
+        setMsg("Could not fetch task.");
       } finally {
         setLoading(false);
       }
@@ -30,167 +33,200 @@ export default function EmployeeTaskAction() {
     fetchTask();
   }, []);
 
-  /* ---------------------------------------------
-     ACCEPT TASK (ONE API CALL)
-  --------------------------------------------- */
+  useEffect(() => {
+    setStatus(initialStatus || "PENDING");
+    setReason(initialRejectionReason || "");
+  }, [initialStatus, initialRejectionReason]);
+
   const handleAccept = async () => {
+    setLoading(true);
+    setMsg("");
     try {
-      const res = await api.post(`/task/action/${task._id}`, {
-        action: "accept",
-      });
-
-      alert("Task accepted successfully!");
-
-      navigate(`/task-overview/${task._id}`, {
+      const res = await api.post(`/employee/task/${taskId}/accept`);
+      setStatus("ACCEPTED");
+      setMsg("Task accepted successfully.");
+      navigate(`/task-overview/${taskId}`, {
         state: { task: res.data.task },
       });
     } catch (err) {
-      alert("Failed to accept task");
+      setMsg(err?.response?.data?.message || "Failed to accept task.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* ---------------------------------------------
-     REJECT TASK → SHOW MODAL
-  --------------------------------------------- */
-  const openRejectModal = () => {
-    setShowRejectModal(true);
-  };
-
-  /* ---------------------------------------------
-   SUBMIT REJECTION
---------------------------------------------- */
-  const submitRejection = async () => {
-    if (!rejectReason.trim()) {
-      alert("Reason is required!");
+  const handleReject = async () => {
+    if (!reason.trim()) {
+      setMsg("Please provide a reason for rejection.");
       return;
     }
-
+    setLoading(true);
+    setMsg("");
     try {
-      const res = await api.post(`/task/action/${task.taskId}`, {
-        action: "reject",
-        reason: rejectReason,
-      });
-
-      if (res.status === 200) {
-        // CASE 1: Rejection FAILED → manager stays on task view
-        if (res.data.success === false) {
-          alert("Rejection failed! Employee still has the task.");
-
-          return navigate(`/task-overview/${task.taskId}`, {
-            state: { task: res.data.task }, // updated task state from backend
-          });
-        }
-
-        // CASE 2: Rejection SUCCESS → Move manager back to dashboard
-        alert("Task rejected successfully!");
-        return navigate("/");
-      }
+      const res = await api.post(`/employee/task/${taskId}/reject`, { reason });
+      setStatus("REJECTED");
+      setMsg("Task rejected.");
+      navigate("/");
     } catch (err) {
-      alert("Failed to reject task");
+      setMsg(err?.response?.data?.message || "Failed to reject task.");
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (status === "ACCEPTED")
+    return (
+      <div className="p-4 rounded bg-green-50 border border-green-200 text-green-700 max-w-3xl mx-auto mt-10">
+        <h2 className="text-xl font-bold mb-2">Task Accepted</h2>
+        <p>You have accepted this task.</p>
+      </div>
+    );
+
+  if (status === "REJECTED")
+    return (
+      <div className="p-4 rounded bg-red-50 border border-red-200 text-red-700 max-w-3xl mx-auto mt-10">
+        <h2 className="text-xl font-bold mb-2">Task Rejected</h2>
+        <p>You have rejected this task.<br />
+        <span className="font-semibold">Reason:</span> {reason}</p>
+      </div>
+    );
+
   if (loading) return <p>Loading...</p>;
+  if (!task) return <p className="text-red-600">No task found.</p>;
 
   return (
-    <div className="min-h-screen flex justify-center items-center p-4 bg-gray-100">
+    <div className="min-h-[80vh] bg-gray-50 py-10 px-2">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="w-full max-w-xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-3xl mx-auto p-8 bg-white rounded-2xl shadow-lg border border-gray-200"
       >
-        {/* Task Card */}
-        <div className="bg-white p-6 rounded-xl shadow-xl space-y-4">
-          {error && <p className="text-red-500">{error}</p>}
-
-          {/* TITLE */}
-          <h1 className="text-2xl font-bold text-gray-900">{task.title}</h1>
-
-          {/* DESCRIPTION */}
-          <p className="text-gray-700">{task.description}</p>
-
-          {/* PRIORITY + DUE DATE */}
-          <div className="grid grid-cols-2 gap-4 mt-4 text-gray-700">
-            <div>
-              <p className="text-sm font-semibold">Priority</p>
-              <p className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-xl inline-block mt-1 uppercase">
-                {task.priority}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold">Due Date</p>
-              <p className="mt-1">
-                {task.dueDate
-                  ? new Date(task.dueDate).toLocaleDateString()
-                  : "N/A"}
-              </p>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-black">{task.title}</h1>
+            <div className="flex items-center gap-4 text-gray-700 mt-2">
+              <span className="text-sm font-semibold">Due Date:</span>
+              <span className="bg-gray-100 text-black px-3 py-1 rounded-lg">
+                {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A"}
+              </span>
             </div>
           </div>
-
-          {/* PDF BUTTON */}
-          {task.pdfUrl && (
-            <div className="mt-4">
-              <a
-                href={task.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl inline-block"
-              >
-                📄 Open Task PDF
-              </a>
-            </div>
-          )}
-
-          {/* ACTION BUTTONS */}
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handleAccept}
-              className="px-6 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition"
-            >
-              Accept
-            </button>
-
-            <button
-              onClick={openRejectModal}
-              className="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition"
-            >
-              Reject
-            </button>
+          <div className="flex flex-col items-start gap-2">
+            <span className="text-xs text-gray-500">Assigned by: <span className="font-semibold">{task.assignedBy?.name || "HR"}</span></span>
+            <span className="text-xs text-gray-500">Task ID: <span className="font-mono">{task._id?.slice(-6) || "N/A"}</span></span>
           </div>
         </div>
 
-        {/* REJECT MODAL */}
-        {showRejectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
-            <div className="bg-white w-96 p-6 rounded-xl shadow-xl">
-              <h2 className="text-xl font-bold">Reason for Rejection</h2>
+        {/* Divider */}
+        <hr className="my-4 border-gray-200" />
 
-              <textarea
-                className="w-full border rounded-lg p-2 mt-3"
-                rows="4"
-                placeholder="Write your reason..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
+        {/* Instructions/Context */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">Instructions</h2>
+          <ul className="list-disc list-inside text-gray-600 text-sm space-y-1">
+            <li>Review the task details carefully before taking action.</li>
+            <li>Once you accept or reject, you cannot change your decision.</li>
+            <li>If you reject, please provide a clear reason for transparency.</li>
+            <li>Download the attached file for full task details if available.</li>
+          </ul>
+        </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  className="px-4 py-2 bg-gray-300 rounded-lg"
-                  onClick={() => setShowRejectModal(false)}
+        {/* OPEN BUTTON */}
+        {!detailsOpen && (
+          <button
+            className="mt-4 px-6 py-2 rounded-lg bg-black text-white font-semibold hover:bg-gray-800 transition"
+            onClick={() => setDetailsOpen(true)}
+          >
+            Open Task Details
+          </button>
+        )}
+
+        {/* DETAILS */}
+        {detailsOpen && (
+          <>
+            {/* PRIORITY */}
+            <div className="flex items-center gap-4 text-gray-700 mb-2">
+              <span className="text-sm font-semibold">Priority:</span>
+              <span className="bg-gray-200 text-black px-3 py-1 rounded-lg uppercase">
+                {task.priority}
+              </span>
+            </div>
+
+            {/* ATTACHED FILE */}
+            {task.pdfUrl && (
+              <div className="mb-2">
+                <a
+                  href={task.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition"
                 >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={submitRejection}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Submit
-                </button>
+                  📄 View Attached File
+                </a>
               </div>
+            )}
+
+            {/* DESCRIPTION */}
+            <div className="mb-4">
+              <h3 className="text-md font-semibold text-gray-800 mb-1">Description</h3>
+              <p className="text-gray-800">{task.description}</p>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex flex-col md:flex-row justify-between gap-4 mt-8">
+              <button
+                onClick={handleAccept}
+                className="flex-1 px-6 py-2 rounded-lg bg-black text-white font-semibold hover:bg-gray-800 transition"
+                disabled={loading}
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => setShowReason(true)}
+                className="flex-1 px-6 py-2 rounded-lg bg-gray-700 text-white font-semibold hover:bg-black transition"
+                disabled={loading}
+              >
+                Reject
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* REJECT REASON INPUT */}
+        {showReason && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl shadow border border-gray-200">
+            <h2 className="text-lg font-semibold mb-2 text-black">Reason for Rejection</h2>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-2 mt-3"
+              rows="4"
+              placeholder="Write your reason..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={loading}
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                className="px-4 py-2 bg-gray-300 text-black rounded-lg"
+                onClick={() => setShowReason(false)}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black"
+                disabled={loading}
+              >
+                Submit Rejection
+              </button>
             </div>
           </div>
+        )}
+
+        {/* Error/Info Message */}
+        {msg && (
+          <div className="mt-4 text-sm text-red-600">{msg}</div>
         )}
       </motion.div>
     </div>

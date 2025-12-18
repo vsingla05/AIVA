@@ -10,7 +10,7 @@ export default async function handleEmployeeAction(req, res) {
     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
     if (!taskId) return res.status(400).json({ success: false, message: "taskId required" });
 
-    if (action === 'accept') {
+    if (action === 'ACCEPT') {
       return await handleEmployeeAcceptAction(userId, taskId, res);
     } else {
       return await handleEmployeeRejectAction(userId, taskId, reason, res); 

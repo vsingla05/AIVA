@@ -10,10 +10,7 @@ export async function getLatestTask(req, res) {
         .json({ success: false, message: "employeeId is required" });
     }
 
-    const task = await Task.findOne({
-      employeeId,
-      status: { $in: ["IN_PROGRESS", "READY_FOR_REVIEW", "TODO", "ASSIGNED"] },
-    })
+    const task = await Task.findOne({employeeId,})
       .populate("assignedBy", "name email")
       .populate("phases")
       .sort({ createdAt: -1 });
