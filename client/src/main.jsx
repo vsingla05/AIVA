@@ -19,7 +19,7 @@ import Logout from "./components/auth/Logout.jsx";
 // Employee Pages
 import EmployeeDashboard from "./pages/employees/EmployeeDashboard.jsx";
 import NotificationsPage from "./pages/employees/Notifications.jsx";
-import ChatBot from './pages/Chat.jsx'
+// import ChatBot from './pages/Chat.jsx'
 import Profile from "./pages/employees/AddProfile.jsx";
 import AllEmployeeTasks from "./pages/employees/allEmployeeTasks.jsx";
 import TaskDetailsPage from "./pages/employees/TaskOverview.jsx";
@@ -35,9 +35,12 @@ import ManagerDashboardOverview from "./pages/manager/ManagerDashboardOverview.j
 // Manager Pages
 import ManagerDashboardLayout from "./layout/ManagerDashboardLayout.jsx";
 import Employees from "./pages/manager/Employees.jsx";
-import TaskProofs from "./pages/manager/TaskProofs.jsx";
+import TaskProofs from "./pages/manager/Approvals.jsx";
 import ProjectDashboard from "./pages/manager/ViewProjects.jsx";
 import AnalyticsSection from "./pages/manager/AnalyticsSection.jsx";
+import ManagerChatBot from "./pages/manager/ManagerChatobt.jsx";
+import EmployeeChatBot from "./pages/employees/EmployeeChatobt.jsx";
+import Approvals from "./pages/manager/Approvals.jsx";
 
 const router = createBrowserRouter([
   {
@@ -62,7 +65,7 @@ const router = createBrowserRouter([
             element: <DashboardLayout />, 
             children: [
               { path: "dashboard", element: <EmployeeDashboard /> },
-              { path: "chat", element: <ChatBot /> },
+              { path: "chat", element: <EmployeeChatBot /> },
               { path: "notifications", element: <NotificationsPage /> },
               { path: "employee/addProfile", element: <Profile /> },
               { path: "employee/tasks", element: <AllEmployeeTasks /> },
@@ -85,10 +88,10 @@ const router = createBrowserRouter([
             element: <ManagerDashboardLayout />,
             children: [
               { path: "manager-dashboard", element: <ManagerDashboardOverview/> },
-              { path: "manager/chat", element: <ChatBot/> },
+              { path: "manager/chat", element: <ManagerChatBot/> },
               { path: "manager/employees", element: <Employees/> },
               { path: "manager/profile", element: <EmployeeProfile/> },
-              { path: "manager/task-proofs", element: <TaskProofs/> },
+              { path: "manager/action", element: <Approvals/> },
               { path: "manager/projects", element: <ProjectDashboard/> },
               { path: "manager/analytics", element: <AnalyticsSection/> }
             ]

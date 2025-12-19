@@ -11,6 +11,7 @@ import authRoutes from './routers/auth/authRoutes.js';
 import aiRoutes from './routers/ai/aiRoutes.js';
 import taskRoutes from './routers/task/taskRoutes.js';
 import leaveRoutes from './routers/leave/leaveRoutes.js';
+import managerRoutes from './routers/manager/managerRoutes.js'
 
 // Jobs
 import { startScheduler, stopScheduler } from './jobs/scheduler.js';
@@ -60,7 +61,8 @@ app.use('/api/v1/employee', employeeRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/task', taskRoutes);
-app.use('/api/v1/leave', leaveRoutes);
+app.use('/api/v1/leaves', leaveRoutes);
+app.use('/api/v1/manager', managerRoutes)
 
 // --- SERVER STARTUP ---
 const startServer = async () => {

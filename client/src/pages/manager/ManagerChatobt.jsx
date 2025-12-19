@@ -1,7 +1,7 @@
 // client/src/pages/ChatBot.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, ArrowLeft, Loader2 } from "lucide-react";
-import api from "../components/auth/api";
+import api from '../../components/auth/api'
 
 const Bubble = ({ text, sender }) => {
   const isUser = sender === "HR" || sender === "user";
@@ -24,7 +24,7 @@ const Bubble = ({ text, sender }) => {
   );
 };
 
-export default function ChatBot() {
+export default function ManagerChatBot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,7 @@ export default function ChatBot() {
     setIsLoading(true);
 
     try {
-      const res = await api.post("/ai/chat", { command: userText });
+      const res = await api.post("/ai/manager/chat", { command: userText });
       setMessages((p) => [...p, { sender: "AI", text: res.data.reply }]);
     } catch {
       setMessages((p) => [...p, { sender: "AI", text: "Server error. Try again." }]);

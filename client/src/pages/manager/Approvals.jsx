@@ -4,7 +4,7 @@ import api from "../../components/auth/api";
 /* -------------------- BADGE -------------------- */
 const StatusBadge = ({ status }) => {
   const styles = {
-    READY_FOR_REVIEW: "bg-yellow-100 text-yellow-800",
+    PENDING: "bg-yellow-100 text-yellow-800",
     APPROVED: "bg-green-100 text-green-800",
     REJECTED: "bg-red-100 text-red-800",
   };
@@ -37,43 +37,85 @@ const Modal = ({ open, title, children, onClose }) => {
   );
 };
 
-/* -------------------- MAIN COMPONENT -------------------- */
-export default function TaskProofs() {
-  const [tasks, setTasks] = useState([]);
+/* -------------------- MAIN -------------------- */
+export default function Approvals() {
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [rejectModal, setRejectModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  /* -------------------- FETCH -------------------- */
+  /* -------------------- FETCH TASKS + LEAVES -------------------- */
   useEffect(() => {
-    const fetchProofs = async () => {
+    const fetchAll = async () => {
       try {
-        const res = await api.get("/task/send-proofs");
-        setTasks(res.data.tasks || []);
+        const [tasksRes, leavesRes] = await Promise.all([
+          api.get("/task/send-proofs"),
+          api.get("/leaves/send-pending-leaves"),
+        ]);
+
+        const taskItems =
+          (tasksRes.data.tasks || []).map((t) => ({
+            type: "TASK",
+            ...t,
+          }));
+
+        const leaveItems =
+          (leavesRes.data.leaves || []).map((l) => ({
+            type: "LEAVE",
+            ...l,
+          }));
+
+        setItems([...taskItems, ...leaveItems]);
       } catch (err) {
-        console.error("Failed to fetch task proofs");
+        console.error("Failed to fetch approvals");
       } finally {
         setLoading(false);
       }
     };
-    fetchProofs();
+
+    fetchAll();
   }, []);
 
   /* -------------------- MANAGER ACTION -------------------- */
-  const managerAction = async (task, action) => {
+  const managerAction = async (item, action) => {
     try {
       setSubmitting(true);
 
-      await api.post(
-        `/task/manager-action/${task.taskId}/${task.employeeId}`,
-        { action, reason }
+      const payload = {
+        action: action.toLowerCase(), // "accept" | "reject"
+      };
+
+      // send reason ONLY for reject
+      if (action === "REJECT") {
+        payload.reason = reason;
+      }
+
+      if (item.type === "TASK") {
+        await api.post(
+          `/task/${item.taskId}/${item.employeeId}`,
+          payload
+        );
+      }
+
+      if (item.type === "LEAVE") {
+        await api.post(
+          `/leaves/${item._id}/decision`,
+          payload
+        );
+      }
+
+      // remove item from UI
+      setItems((prev) =>
+        prev.filter(
+          (i) => i._id !== item._id && i.taskId !== item.taskId
+        )
       );
 
-      setTasks((prev) => prev.filter((t) => t.taskId !== task.taskId));
       setRejectModal(false);
+      setSelectedItem(null);
       setReason("");
     } catch (err) {
       alert("Action failed");
@@ -92,68 +134,83 @@ export default function TaskProofs() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Approvals</h1>
         <p className="text-sm text-gray-500">
-          Review submitted task proofs
+          Review pending tasks and leave requests
         </p>
       </div>
 
-      {/* EMPTY */}
-      {!tasks.length && (
+      {!items.length && (
         <div className="bg-white rounded-xl shadow p-6 text-center text-gray-500">
-          No tasks pending review
+          No pending approvals
         </div>
       )}
 
-      {/* TASK LIST */}
       <div className="space-y-4">
-        {tasks.map((task) => (
+        {items.map((item) => (
           <div
-            key={task.taskId}
+            key={item._id || item.taskId}
             className="bg-white rounded-2xl shadow-sm border p-5 flex justify-between items-center"
           >
             {/* LEFT */}
             <div>
               <h3 className="font-semibold text-gray-900">
-                {task.title}
+                {item.type === "TASK" ? item.title : "Leave Request"}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Due: {new Date(task.dueDate).toLocaleDateString()}
-              </p>
-              <p className="text-sm text-gray-600">
-                Employee: <span className="font-medium">{task.employee.name}</span>
-              </p>
+
+              {item.type === "TASK" ? (
+                <>
+                  <p className="text-sm text-gray-500">
+                    Due: {new Date(item.dueDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm">
+                    Employee: <b>{item.employee.name}</b>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm">
+                    {new Date(item.startDate).toLocaleDateString()} →{" "}
+                    {new Date(item.endDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm">
+                    Days: <b>{item.days}</b> | Priority: <b>{item.priority}</b>
+                  </p>
+                  <p className="text-sm">
+                    Employee: <b>{item.employee.name}</b>
+                  </p>
+                </>
+              )}
             </div>
 
             {/* RIGHT */}
             <div className="flex items-center gap-3">
-              <StatusBadge status={task.proof.status} />
+              <StatusBadge status={item.status} />
 
-              {/* VIEW */}
-              {task.proof.file && (
+              {item.type === "TASK" && item.proof?.file && (
                 <a
-                  href={task.proof.file}
+                  href={item.proof.file}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50"
+                  className="px-3 py-2 text-sm border rounded-lg"
                 >
                   View
                 </a>
               )}
 
-              {/* ACCEPT */}
               <button
-                onClick={() => managerAction(task, "accept")}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg"
+                onClick={() => managerAction(item, "APPROVE")}
+                disabled={submitting}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg"
               >
-                Accept
+                Approve
               </button>
 
-              {/* REJECT */}
               <button
                 onClick={() => {
-                  setSelectedTask(task);
+                  setSelectedItem(item);
                   setRejectModal(true);
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg"
+                disabled={submitting}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg"
               >
                 Reject
               </button>
@@ -165,8 +222,11 @@ export default function TaskProofs() {
       {/* REJECT MODAL */}
       <Modal
         open={rejectModal}
-        title="Reject Task Proof"
-        onClose={() => setRejectModal(false)}
+        title="Reject"
+        onClose={() => {
+          setRejectModal(false);
+          setReason("");
+        }}
       >
         <textarea
           rows="4"
@@ -178,7 +238,10 @@ export default function TaskProofs() {
 
         <div className="flex justify-end gap-3 mt-4">
           <button
-            onClick={() => setRejectModal(false)}
+            onClick={() => {
+              setRejectModal(false);
+              setReason("");
+            }}
             className="px-4 py-2 bg-gray-100 rounded-lg"
           >
             Cancel
@@ -186,7 +249,7 @@ export default function TaskProofs() {
 
           <button
             disabled={!reason || submitting}
-            onClick={() => managerAction(selectedTask, "reject")}
+            onClick={() => managerAction(selectedItem, "REJECT")}
             className="px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50"
           >
             {submitting ? "Rejecting..." : "Reject"}

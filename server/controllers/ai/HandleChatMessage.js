@@ -13,7 +13,6 @@ export default async function HandleChatMessage(req, res) {
   const { command } = req.body;
   const hrId = req.user?._id;
 
-  return res.status(200).json({reply:`${command} successfully reached to server`})
 
   try {
     /* STEP 1 — Extract task details */

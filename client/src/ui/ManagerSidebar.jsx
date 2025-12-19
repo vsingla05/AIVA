@@ -129,7 +129,7 @@ export default function ManagerSidebar() {
           </div>
           <nav className="flex flex-col gap-1">
             <NavItem to="/manager/analytics" icon={Icons.Chart} label="Analytics" />
-            <NavItem to="/manager/task-proofs" icon={Icons.Check} label="Approvals" badge={pendingRequests} />
+            <NavItem to="/manager/action" icon={Icons.Check} label="Approvals" badge={pendingRequests} />
             <NavItem to="/manager/chat" icon={Icons.Chat} label="AI Assistant" badge="AI" />
           </nav>
         </div>

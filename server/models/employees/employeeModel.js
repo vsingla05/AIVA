@@ -23,11 +23,35 @@ const employeeSchema = new mongoose.Schema(
     joinDate: { type: Date, default: Date.now },
 
     /* ───────────────────────────────
+       💰 Salary (Monthly)
+    ─────────────────────────────── */
+    salary: {
+      type: Number,
+      required: true, // e.g. 50000
+      default: 60000,
+    },
+
+    /* ───────────────────────────────
        🧳 Leave Balance
     ─────────────────────────────── */
     leaveBalance: {
       totalLeave: { type: Number, default: 20 },
     },
+
+    /* ───────────────────────────────
+       💸 Salary Deductions (Audit-safe)
+    ─────────────────────────────── */
+    salaryDeductions: [
+      {
+        amount: { type: Number, required: true },
+        reason: { type: String, required: true },
+        leaveId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Leave",
+        },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
 
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
     isActive: { type: Boolean, default: true },
@@ -39,14 +63,14 @@ const employeeSchema = new mongoose.Schema(
     skills: [
       {
         name: String,
-        level: { type: Number, default: 1 }, // 1–5 recommended
+        level: { type: Number, default: 1 },
       },
     ],
 
     skillEmbeddings: [
       {
-        skill: String, // "react skill level 3"
-        embedding: [Number], // 1536-d embedding vector
+        skill: String,
+        embedding: [Number],
         updatedAt: { type: Date, default: Date.now },
       },
     ],
@@ -57,9 +81,9 @@ const employeeSchema = new mongoose.Schema(
     notifications: [
       {
         message: String,
-        createdAt: Date,
+        createdAt: { type: Date, default: Date.now },
         taskId: mongoose.Schema.Types.ObjectId,
-        isRead: Boolean,
+        isRead: { type: Boolean, default: false },
       },
     ],
 
@@ -81,11 +105,10 @@ const employeeSchema = new mongoose.Schema(
        🕒 Availability
     ─────────────────────────────── */
     availability: {
-      maxWeeklyHours: { type: Number, default: 40 }, // Realistic default
-      holidays: [Date], // Dates when employee is unavailable
+      maxWeeklyHours: { type: Number, default: 40 },
+      holidays: [Date],
     },
 
-    /* Current weekly load in hours */
     currentLoad: { type: Number, default: 0 },
 
     /* ───────────────────────────────
@@ -94,8 +117,8 @@ const employeeSchema = new mongoose.Schema(
     performance: {
       taskCompletionRate: { type: Number, default: 0 },
       avgQualityRating: { type: Number, default: 0 },
-      efficiency: { type: Number, default: 0 }, // Should start at 0
-      performanceScore: { type: Number, default: 100 }, // Global score (AI updated)
+      efficiency: { type: Number, default: 0 },
+      performanceScore: { type: Number, default: 100 },
     },
 
     /* ───────────────────────────────

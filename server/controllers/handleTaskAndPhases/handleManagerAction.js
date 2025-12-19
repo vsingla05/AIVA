@@ -9,7 +9,7 @@ export default async function handleManagerAction(req, res) {
     console.log("in manager action",req.body)
 
 
-    if (action === "accept") {
+    if (action.toLowerCase() === "approve") {
       return await handleManagerAcceptAction(tid, eid, res);
     } else {
       return await handleManagerRejectAction(tid, eid, reason, res);

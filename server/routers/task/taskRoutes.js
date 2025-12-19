@@ -35,6 +35,6 @@ router.get('/latest', Authentication, getLatestTask)
 router.get('/send-proofs', Authentication, sendTaskProof)
 
 // 8️⃣ Manager Review Action (PUT AT BOTTOM)
-router.post('/:tid/employee/:eid', Authentication, handleManagerAction);
+router.post('/:tid/:eid', Authentication, handleManagerAction);
 
 export default router;
