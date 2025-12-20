@@ -1,204 +1,246 @@
 import React, { useState, useEffect, useCallback } from "react";
-import api from '../../components/auth/api'
+import api from "../../components/auth/api";
+import { 
+  Bell, 
+  CheckCircle2, 
+  Circle, 
+  Filter, 
+  Trash2, 
+  Search, 
+  Inbox, 
+  Activity, 
+  Clock,
+  ChevronRight,
+  Zap
+} from "lucide-react";
 
-// Icon for "Check/Mark as Read"
-const CheckIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-// Icon for "Bell"
-const BellIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h11z" />
-  </svg>
-);
-
+/* ===== Utils ===== */
 const timeAgo = (date) => {
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-  let interval = Math.floor(seconds / 31536000);
-  if (interval > 1) return `${interval}y ago`;
-  interval = Math.floor(seconds / 2592000);
-  if (interval > 1) return `${interval}mo ago`;
-  interval = Math.floor(seconds / 86400);
-  if (interval > 1) return `${interval}d ago`;
-  interval = Math.floor(seconds / 3600);
-  if (interval > 1) return `${interval}h ago`;
-  interval = Math.floor(seconds / 60);
-  if (interval > 1) return `${interval}m ago`;
-  return `Just now`;
+  const units = [
+    [31536000, "y"], [2592000, "mo"], [86400, "d"], [3600, "h"], [60, "m"],
+  ];
+  for (const [unit, label] of units) {
+    const value = Math.floor(seconds / unit);
+    if (value > 0) return `${value}${label} ago`;
+  }
+  return "Just now";
 };
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all' or 'unread'
+  const [filter, setFilter] = useState("all");
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [notifResponse, countResponse] = await Promise.all([
+      const [notifRes, countRes] = await Promise.all([
         api.get("/employee/notifications"),
         api.get("/employee/notifications/unread-count"),
       ]);
-      setNotifications(notifResponse.data.notifications);
-      setUnreadCount(countResponse.data.unreadCount);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+      setNotifications(notifRes.data.notifications || []);
+      setUnreadCount(countRes.data.unreadCount || 0);
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
-  // Mark ALL as read
-  const handleMarkAllAsRead = async () => {
-    try {
-      await api.put("/employee/notifications/read-all");
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error("Error marking all as read:", error);
-    }
-  };
-
-  // Mark SINGLE as read
   const handleMarkAsRead = async (id) => {
     try {
       await api.put(`/employee/notification/${id}/read`);
-      
-      // Update local state immediately for UI responsiveness
-      setNotifications((prev) => 
-        prev.map((n) => n._id === id ? { ...n, isRead: true } : n)
-      );
-      
-      // Decrease count locally
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) { console.error(err); }
   };
 
-  const filteredNotifications = notifications.filter(n => {
-    if (filter === 'unread') return !n.isRead;
-    return true;
-  });
+  const filteredNotifications = filter === "unread" 
+    ? notifications.filter(n => !n.isRead) 
+    : notifications;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="min-h-screen bg-gray-50 p-6 md:p-10">
-        <div className="max-w-4xl mx-auto">
-          
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <span className="bg-blue-100 p-2 rounded-lg text-blue-600"><BellIcon /></span>
-                Notifications
-              </h1>
-              <p className="text-gray-500 text-sm mt-1 ml-12">
-                You have {unreadCount} unread messages
-              </p>
-            </div>
+    <main className="p-6 lg:p-10 max-w-[1600px] mx-auto min-h-screen bg-[#F8FAFC] text-slate-900 font-sans tracking-tight">
+      
+      {/* ─── HEADER ─── */}
+      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight mb-2">Notification Center</h1>
+          <p className="text-slate-500 font-bold">Manage your updates and workspace alerts.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Search alerts..." 
+              className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64 shadow-sm"
+            />
+          </div>
+          <button className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+            <Filter size={18} />
+          </button>
+        </div>
+      </header>
 
-            <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
-               <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  filter === 'all' ? 'bg-gray-100 text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilter('unread')}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  filter === 'unread' ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Unread
-              </button>
+      <div className="grid grid-cols-12 gap-8">
+        
+        {/* ─── LEFT: CATEGORIES (Col 3) ─── */}
+        <aside className="col-span-12 lg:col-span-3 space-y-6">
+          <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 px-2">Inbox Channels</h3>
+            <div className="space-y-2">
+              <SidebarTab 
+                label="All Messages" 
+                count={notifications.length} 
+                active={filter === "all"} 
+                onClick={() => setFilter("all")}
+                icon={<Inbox size={18}/>} 
+              />
+              <SidebarTab 
+                label="Unread" 
+                count={unreadCount} 
+                active={filter === "unread"} 
+                onClick={() => setFilter("unread")}
+                icon={<Bell size={18}/>} 
+                color="text-indigo-600"
+              />
+              <SidebarTab label="System Alerts" count={0} icon={<Zap size={18}/>} />
             </div>
-            
-            <button
-              onClick={handleMarkAllAsRead}
-              disabled={unreadCount === 0}
-              className="hidden md:block text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-            >
-              Mark all as read
-            </button>
           </div>
 
-          {/* List */}
-          <div className="space-y-3">
+          <div className="bg-indigo-600 rounded-[2rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Workspace Health</p>
+              <h4 className="text-2xl font-black mb-4">{( (1 - (unreadCount/notifications.length || 0)) * 100).toFixed(0)}%</h4>
+              <p className="text-xs font-bold opacity-80 leading-relaxed">You are staying on top of your communications.</p>
+            </div>
+            <Activity size={100} className="absolute -right-6 -bottom-6 opacity-10" />
+          </div>
+        </aside>
+
+        {/* ─── CENTER: FEED (Col 6) ─── */}
+        <section className="col-span-12 lg:col-span-6 space-y-4">
+          <div className="flex items-center justify-between px-4">
+             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Recent Activity</h3>
+             <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase">
+               {filter} feed
+             </span>
+          </div>
+
+          <div className="space-y-4">
             {filteredNotifications.length > 0 ? (
               filteredNotifications.map((notif) => (
                 <div
                   key={notif._id}
-                  className={`group relative flex items-start gap-4 p-5 rounded-xl border transition-all duration-200 hover:shadow-md ${
-                    notif.isRead 
-                      ? "bg-white border-gray-100" 
-                      : "bg-white border-blue-100 shadow-sm ring-1 ring-blue-50"
+                  className={`group bg-white border rounded-[2rem] p-6 flex items-start gap-6 transition-all hover:border-indigo-400 hover:shadow-lg ${
+                    notif.isRead ? "border-slate-100 opacity-80" : "border-slate-200 shadow-sm"
                   }`}
                 >
-                  {/* Status Dot */}
-                  <div className="mt-2">
-                    {!notif.isRead ? (
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm ring-4 ring-blue-50"></div>
-                    ) : (
-                      <div className="w-2.5 h-2.5 rounded-full bg-gray-200"></div>
-                    )}
+                  <div className={`mt-1 shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                    notif.isRead ? "bg-slate-50 text-slate-400" : "bg-indigo-50 text-indigo-600"
+                  }`}>
+                    {notif.isRead ? <CheckCircle2 size={20} /> : <Bell size={20} />}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1">
-                    <p className={`text-sm md:text-base leading-relaxed ${notif.isRead ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
+                    <p className={`text-base leading-snug ${notif.isRead ? "text-slate-500 font-medium" : "text-slate-900 font-black"}`}>
                       {notif.message}
                     </p>
-                    <p className="text-xs text-gray-400 mt-2 font-medium">
-                      {timeAgo(notif.createdAt)}
-                    </p>
+                    <div className="flex items-center gap-4 mt-2">
+                       <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                         <Clock size={12}/> {timeAgo(notif.createdAt)}
+                       </span>
+                    </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center">
-                    {!notif.isRead && (
-                      <button
-                        onClick={() => handleMarkAsRead(notif._id)}
-                        title="Mark as read"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
-                      >
-                        <CheckIcon />
-                      </button>
-                    )}
-                  </div>
+                  {!notif.isRead && (
+                    <button
+                      onClick={() => handleMarkAsRead(notif._id)}
+                      className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-indigo-600"
+                    >
+                      <CheckCircle2 size={18} />
+                    </button>
+                  )}
                 </div>
               ))
             ) : (
-              <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
-                <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                  <BellIcon />
+              <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] py-24 text-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                  <Inbox size={32} />
                 </div>
-                <p className="text-gray-500 font-medium">No notifications found.</p>
-                {filter === 'unread' && <button onClick={() => setFilter('all')} className="text-blue-500 text-sm mt-2 hover:underline">View all notifications</button>}
+                <p className="text-slate-400 font-bold">Your workspace is quiet for now.</p>
               </div>
             )}
           </div>
-        </div>
+        </section>
+
+        {/* ─── RIGHT: SUMMARY (Col 3) ─── */}
+        <aside className="col-span-12 lg:col-span-3 space-y-6">
+          <section className="bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm">
+            <h3 className="font-black text-xs uppercase tracking-widest mb-8 flex items-center gap-2 text-indigo-600">
+               <Activity size={16} /> Statistics
+            </h3>
+            
+            <div className="space-y-8">
+               <SummaryItem label="Unread Count" value={unreadCount} sub="High priority" />
+               <SummaryItem label="Total Alerts" value={notifications.length} sub="Lifetime" />
+               
+               <div className="pt-6 border-t border-slate-100">
+                  <button 
+                    onClick={() => api.put("/employee/notifications/read-all")}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all"
+                  >
+                    Clear All Read
+                  </button>
+               </div>
+            </div>
+          </section>
+        </aside>
+
+      </div>
+    </main>
+  );
+}
+
+/* ─── SUB-COMPONENTS ─── */
+
+function SidebarTab({ label, count, active, onClick, icon, color = "text-slate-400" }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${
+        active ? "bg-slate-900 text-white shadow-lg" : "hover:bg-slate-50 text-slate-600"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className={active ? "text-indigo-400" : color}>{icon}</span>
+        <span className="text-sm font-black">{label}</span>
+      </div>
+      <span className={`text-xs font-black ${active ? "opacity-50" : "text-slate-300"}`}>{count}</span>
+    </button>
+  );
+}
+
+function SummaryItem({ label, value, sub }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">{label}</p>
+      <div className="flex items-baseline gap-2">
+        <p className="font-black text-3xl text-slate-900">{value}</p>
+        <span className="text-[10px] font-bold text-slate-300 uppercase">{sub}</span>
       </div>
     </div>
   );
-};
+}

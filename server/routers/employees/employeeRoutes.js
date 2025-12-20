@@ -13,6 +13,7 @@ import { markAllAsRead } from '../../controllers/employees/notifications.js'
 import { markNotificationAsRead } from '../../controllers/employees/notifications.js'
 import { getAllTasks } from '../../controllers/employees/getAllTasks.js'
 import GetIdTask from '../../controllers/employees/getTaskByID.js'
+import { employeeOverview } from '../../controllers/employees/employeeOverview.js'
 
 const router = express.Router()
 
@@ -25,6 +26,7 @@ router.put('/notifications/read-all', Authentication, markAllAsRead)
 router.put('/notification/:id/read', Authentication, markNotificationAsRead)
 router.get('/all-tasks', Authentication, getAllTasks)
 router.get('/task/:id', Authentication, GetIdTask)
+router.get('/overview', Authentication, employeeOverview)
 
 router.get("/:id/leaves", async (req, res) => {
   const leaves = await Leave.find({ employeeId: req.params.id }).sort({ createdAt: -1 });
